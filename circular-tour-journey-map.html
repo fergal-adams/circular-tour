@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circular Ireland Tour — User Journey Map</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --surface-2: #f9f9f7;
+    --page: #f2f1ec;
+    --ink: #0b0b0b;
+    --ink-secondary: #52514e;
+    --ink-muted: #6b6a65;
+    --border: #e1e0d9;
+    --border-strong: rgba(11,11,11,0.14);
+    --accent: #2a78d6;
+    --accent-text-strong: #1c5cab;
+    --accent-line: #2a78d6;
+    --accent-wash: #cde2fb;
+    --good-text: #006300;
+    --good-bg: #e3f5e3;
+    --warning-text: #6b4a00;
+    --warning-bg: #fce9c4;
+    --critical-text: #b8202a;
+    --critical-bg: #fbe3e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19; --surface-2: #202020; --page: #0d0d0d;
+      --ink: #ffffff; --ink-secondary: #c3c2b7; --ink-muted: #b7b6b0;
+      --border: #2c2c2a; --border-strong: rgba(255,255,255,0.16);
+      --accent: #3987e5; --accent-text-strong: #3987e5; --accent-line: #3987e5; --accent-wash: #14304f;
+      --good-text: #8fe08f; --good-bg: #16341a;
+      --warning-text: #ffd580; --warning-bg: #3a2c0c;
+      --critical-text: #f5a3a3; --critical-bg: #3a1414;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  header.page-head { margin-bottom: 2rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .4rem; }
+  .sub { color: var(--ink-secondary); max-width: 62ch; }
+  .metric-note {
+    display: inline-flex; align-items: center; gap: .5rem; margin-top: 1rem;
+    background: var(--accent-wash); border: 1px solid var(--accent); border-radius: .6rem;
+    padding: .6rem 1rem; font-size: .9rem; color: var(--ink);
+  }
+
+  /* ---- Sentiment chart ---- */
+  .chart-panel {
+    background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1rem; margin-bottom: 2rem; overflow-x: auto;
+  }
+  .chart-title { font-size: .95rem; font-weight: 700; margin: 0 0 .15rem; }
+  .chart-sub { font-size: .82rem; color: var(--ink-muted); margin: 0 0 1rem; }
+  svg.sentiment { display: block; min-width: 820px; }
+  .sentiment text { font-family: inherit; fill: var(--ink-secondary); }
+  .sentiment .axis-label { font-size: 11px; fill: var(--ink-muted); }
+  .sentiment .stage-label { font-size: 12px; font-weight: 600; fill: var(--ink); text-anchor: middle; }
+  .sentiment .baseline { stroke: var(--border); stroke-width: 1; }
+  .sentiment .curve { fill: none; stroke: var(--accent-line); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .sentiment .area { fill: var(--accent-line); opacity: .1; }
+  .sentiment .pt { fill: var(--accent-line); stroke: var(--surface-1); stroke-width: 2; }
+  .sentiment .callout { font-size: 11px; fill: var(--ink-secondary); }
+
+  /* ---- Legend ---- */
+  .legend-row { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 2rem; font-size: .85rem; }
+  .legend-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .65rem; border-radius: 999px; font-weight: 600; }
+  .legend-chip.good { background: var(--good-bg); color: var(--good-text); }
+  .legend-chip.warn { background: var(--warning-bg); color: var(--warning-text); }
+  .legend-chip.crit { background: var(--critical-bg); color: var(--critical-text); }
+  .legend-plain { display: inline-flex; align-items: center; gap: .4rem; color: var(--ink-secondary); }
+
+  /* ---- Stage row ---- */
+  .stage-scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x proximity; }
+  .stage-card {
+    flex: 0 0 280px; scroll-snap-align: start;
+    background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: 1rem;
+    padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem;
+  }
+  .stage-num {
+    width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent-text-strong); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem;
+  }
+  .stage-head { display: flex; align-items: center; gap: .6rem; }
+  .stage-title { font-size: 1.05rem; font-weight: 700; margin: 0; }
+  .stage-block-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); font-weight: 700; margin: .25rem 0 .1rem; }
+  .stage-touchpoint { font-size: .85rem; color: var(--ink-secondary); }
+  .stage-quote { font-style: italic; font-size: .92rem; color: var(--ink); background: var(--surface-2); border-radius: .5rem; padding: .6rem .75rem; }
+  .stage-list { margin: 0; padding-left: 1.1rem; font-size: .85rem; color: var(--ink-secondary); }
+  .stage-list li { margin-bottom: .25rem; }
+  .a11y-note { font-size: .82rem; color: var(--ink-secondary); display: flex; gap: .5rem; align-items: flex-start; background: var(--surface-2); border-radius: .5rem; padding: .55rem .65rem; }
+  .a11y-note svg { flex-shrink: 0; width: 1.1rem; height: 1.1rem; margin-top: .1rem; color: var(--accent); }
+  .risk-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+  .risk-badge.good { background: var(--good-bg); color: var(--good-text); }
+  .risk-badge.warn { background: var(--warning-bg); color: var(--warning-text); }
+  .risk-badge.crit { background: var(--critical-bg); color: var(--critical-text); }
+  .opportunity { font-size: .85rem; color: var(--ink); border-top: 1px dashed var(--border); padding-top: .6rem; }
+  .opportunity strong { color: var(--accent-text-strong); }
+
+  @media (min-width: 1180px) {
+    .stage-scroll { overflow-x: visible; flex-wrap: wrap; }
+    .stage-card { flex: 1 1 13%; min-width: 260px; }
+  }
+
+  footer.notes { margin-top: 2.5rem; font-size: .85rem; color: var(--ink-muted); border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head">
+    <h1>User journey — circular.ie guided tour</h1>
+    <p class="sub">From the moment someone sees the ad to the moment they come back. Curve shows the intended emotional arc, not measured data — use it to spot where the design has to work hardest to earn the next swipe.</p>
+    <div class="metric-note"><span aria-hidden="true">🎯</span> Every stage below is annotated against the 30% engagement target and the accessibility bar this being a public-sector service requires.</div>
+  </header>
+
+  <section class="chart-panel" aria-labelledby="chart-title">
+    <p class="chart-title" id="chart-title">Intended emotional arc across the journey</p>
+    <p class="chart-sub">Illustrative design intent, not user-tested data — treat dips as design risks to test for, not measurements.</p>
+    <svg class="sentiment" viewBox="0 0 820 220" role="img" aria-label="Line chart of intended user sentiment across seven journey stages, rising from cautious curiosity at the ad, dipping slightly at data capture, and ending high on return visit.">
+      <line class="baseline" x1="60" y1="190" x2="800" y2="190"></line>
+      <text class="axis-label" x="30" y="35" text-anchor="start">Delight</text>
+      <text class="axis-label" x="30" y="185" text-anchor="start">Friction</text>
+      <!-- area + curve drawn via inline path; points at 7 stages -->
+      <path class="area" d="M60,110 L165,108 L270,72 L375,55 L480,72 L585,95 L690,50 L690,190 L60,190 Z"></path>
+      <path class="curve" d="M60,110 L165,108 L270,72 L375,55 L480,72 L585,95 L690,50"></path>
+      <g>
+        <circle class="pt" cx="60" cy="110" r="5"></circle>
+        <circle class="pt" cx="165" cy="108" r="5"></circle>
+        <circle class="pt" cx="270" cy="72" r="5"></circle>
+        <circle class="pt" cx="375" cy="55" r="5"></circle>
+        <circle class="pt" cx="480" cy="72" r="5"></circle>
+        <circle class="pt" cx="585" cy="95" r="5"></circle>
+        <circle class="pt" cx="690" cy="50" r="5"></circle>
+      </g>
+      <text class="stage-label" x="60" y="210">1. Ad</text>
+      <text class="stage-label" x="165" y="210">2. Landing</text>
+      <text class="stage-label" x="270" y="210">3. Learn</text>
+      <text class="stage-label" x="375" y="210">4. Discover</text>
+      <text class="stage-label" x="480" y="210">5. Shortlist</text>
+      <text class="stage-label" x="585" y="210">6. Email/share</text>
+      <text class="stage-label" x="690" y="210">7. Return</text>
+      <text class="callout" x="585" y="118" text-anchor="middle">Trust dip: asking for an email</text>
+      <text class="callout" x="375" y="42" text-anchor="middle">Peak: relevance + surprise</text>
+    </svg>
+  </section>
+
+  <div class="legend-row" aria-label="Legend">
+    <span class="legend-chip good"><span aria-hidden="true">●</span> Low drop-off risk</span>
+    <span class="legend-chip warn"><span aria-hidden="true">▲</span> Medium drop-off risk</span>
+    <span class="legend-chip crit"><span aria-hidden="true">■</span> High drop-off risk</span>
+    <span class="legend-plain"><span aria-hidden="true">♿</span> Accessibility / assistive-tech note</span>
+  </div>
+
+  <div class="stage-scroll" role="list">
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">1</span><h2 class="stage-title">Sees the ad</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> Instagram / TikTok / Meta feed ad, audience-segmented creative</p>
+      <p class="stage-quote">"Repair café? Is that... free stuff?"</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Scrolling passively, low intent</li><li>Deciding in under a second whether to tap</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Ad copy and alt text must carry the message alone — some users browse with images/autoplay off.</span></div>
+      <span class="risk-badge crit"><span aria-hidden="true">■</span> High risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> this is pure top-of-funnel; nothing here is fixable in-product, only through creative and targeting.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">2</span><h2 class="stage-title">Lands on the tour</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> mobile landing screen, often inside Instagram/TikTok's in-app browser</p>
+      <p class="stage-quote">"Did that even load? ...oh, ok."</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Impatient — a slow or generic load loses them here</li><li>Deciding if this looks worth their thumb</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>In-app browsers often restrict local storage — don't rely on the browser remembering this visitor later.</span></div>
+      <span class="risk-badge warn"><span aria-hidden="true">▲</span> Medium risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> the segment-matched entry point (from the ad) should land them straight into a relevant card, not a generic homepage — this is the first real save-or-lose moment.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">3</span><h2 class="stage-title">Learns a concept</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> concept card ("what's a repair café?")</p>
+      <p class="stage-quote">"Oh — I didn't actually know that was a thing."</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Genuinely learning, not just browsing a list</li><li>Building context for the group cards that follow</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Progressive disclosure ("tell me more") must be a real, keyboard-reachable control — not hover-only.</span></div>
+      <span class="risk-badge good"><span aria-hidden="true">●</span> Low risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> this is the dwell-time, top-tier metric moment — the thing that separates a tour from a directory.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">4</span><h2 class="stage-title">Discovers real groups</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> group cards + moment/stat cards, repeating loop</p>
+      <p class="stage-quote">"There's one near me? Heart that."</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Swiping, hearting, building a shortlist</li><li>At risk of fatigue if the loop runs too long before a payoff</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Swipe must never be the only path (WCAG 2.5.1) — visible Previous/Next controls and a plain-list alternative are mandatory here.</span></div>
+      <span class="risk-badge warn"><span aria-hidden="true">▲</span> Medium risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> swipes and hearts are the countable, satisfying mid-tier metric — front-load the most save-worthy groups so a short session still feels like a win.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">5</span><h2 class="stage-title">Reviews shortlist</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> end-of-tour shortlist screen, "your circular Ireland"</p>
+      <p class="stage-quote">"Oh nice, look at that — I built a little map."</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Feeling a small sense of ownership over the list</li><li>At risk of an empty, deflating screen if nothing was hearted</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>An empty state needs a real, non-judgemental message and a clear way back into the tour — not a dead end.</span></div>
+      <span class="risk-badge good"><span aria-hidden="true">●</span> Low risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> this is the pivot from consumption to a personal artifact — the thing worth sharing.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">6</span><h2 class="stage-title">Emails / shares it</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> lightweight email-to-self form, no account created</p>
+      <p class="stage-quote">"...will this sign me up for spam?"</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Weighing a small trust decision — the only PII asked for in the whole flow</li><li>Deciding whether to also share the link with someone else</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Labelled fields, inline (not colour-only) error messages, and a consent line kept separate from any newsletter opt-in.</span></div>
+      <span class="risk-badge crit"><span aria-hidden="true">■</span> High risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> this single field is the acquisition and share-out engine — keep the ask minimal and the wording honest about why it's needed.</p>
+    </article>
+
+    <article class="stage-card" role="listitem">
+      <div class="stage-head"><span class="stage-num" aria-hidden="true">7</span><h2 class="stage-title">Comes back</h2></div>
+      <p class="stage-touchpoint"><strong>Touchpoint:</strong> the emailed board link, reopened days or weeks later, any device</p>
+      <p class="stage-quote">"Oh — three new groups since I last looked."</p>
+      <p class="stage-block-label">User is</p>
+      <ul class="stage-list"><li>Returning with no login needed — the link itself is the "account"</li><li>Possibly sharing that same link onward to someone else</li></ul>
+      <div class="a11y-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Anchor "what's new" to the board ID, not to device/browser memory, so it survives an in-app-browser reset.</span></div>
+      <span class="risk-badge good"><span aria-hidden="true">●</span> Low risk</span>
+      <p class="opportunity"><strong>Why it matters:</strong> repeat visits and referrals both come from this one link — it's the whole retention loop in a single URL.</p>
+    </article>
+
+  </div>
+
+  <footer class="notes">
+    <p><strong>Reading this map:</strong> the sentiment curve is design intent, drawn to flag two deliberate risk points — the ad-to-landing gap (pure funnel loss, outside the product) and the email ask (the one moment we request anything personal). Both deserve their own test before launch: real users on real in-app browsers, and a moderated read of the email-consent copy.</p>
+    <p>This map assumes the "merged" concept (editorial concept cards + experience-led swipe mechanic) discussed as the starting option — the editorial-led and experience-led variants would compress or expand stage 3–4 differently, worth mapping separately once the merged version is validated.</p>
+  </footer>
+</div>
+</body>
+</html>

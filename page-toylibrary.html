@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>"What's a toy library?" — single page focus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /*
+    Single-page focus, matching the Figma frame at node 1:394 ("iPhone 16 - 7") as closely as
+    possible: https://www.figma.com/design/GshAzt5UX8h2HbMmqpJ4Ui/Untitled?node-id=1-394
+    Frame is 393x852 (iPhone 16 viewport), block colour #54D3BE, DM Sans throughout.
+
+    Two things adjusted from the reference, both flagged rather than silently "fixed":
+    1) The white back-button/Next-pill sit on the mint background with no border in Figma —
+       that's only 1.84:1, under the 3:1 AA minimum for a UI component's boundary. Added a
+       1.5px border in #F9ECD4 (the design system's established button-outline colour, used
+       the same way elsewhere) — measured at ~1.57:1 against mint and ~1.17:1 against the
+       button's own white fill, so it does NOT clear the 3:1 AA minimum. Kept deliberately, at
+       Fergal's call, to stay consistent with the existing design system rather than diverge
+       with a one-off black border here. Everything else (black text on mint = 11.44:1, black
+       on the yellow ellipse = 15.6:1) already clears AA with room to spare, so nothing else
+       changed.
+    2) The three background illustration shapes use a single delivered asset (baby_bottle.svg,
+       line art) reused across all three zones — mirrored/rotated per zone for variety — as a
+       temporary treatment until distinct artwork exists for each. Swap in separate SVGs later
+       if Fergal provides them.
+  */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.25rem; background: #e4e4e0; font-family: 'DM Sans', system-ui, sans-serif; padding: 2rem 1rem;
+  }
+  .frame-label { color: #444; font-size: .85rem; text-align: center; max-width: 393px; }
+  .frame-label a { color: #444; }
+
+  .phone {
+    width: 393px; height: 852px; max-width: 100%; aspect-ratio: 393 / 852;
+    background: #54D3BE; border-radius: 24px; position: relative; overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,.18);
+    color: #000;
+  }
+
+  .tl-headline {
+    position: absolute; left: 4.8%; top: 9.4%; width: 90.3%; z-index: 1;
+    font-size: 36px; line-height: 40px; font-weight: 600; text-align: center; margin: 0;
+  }
+
+  /* Illustration zones — positions/sizes approximate the three decorative shapes in the Figma
+     frame. Reusing the single delivered baby_bottle.svg asset in each, mirrored/rotated for
+     visual variety, until distinct artwork exists per zone. */
+  .tl-illustration-zone {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    opacity: .5; z-index: 0;
+  }
+  /* Float applies to the svg child, not the zone itself, so it layers on top of the parent's
+     static mirror/rotate transform instead of overwriting it. Delays are staggered per zone
+     so the three copies don't move in lockstep. */
+  .tl-illustration-zone svg {
+    width: 100%; height: 100%;
+    animation: tl-float 6s ease-in-out infinite;
+  }
+  .tl-illustration-zone--a { left: 14.2%; top: 17.7%; width: 77.8%; height: 26.8%; }
+  .tl-illustration-zone--b { left: -42.7%; top: 56.8%; width: 86.3%; height: 34%; transform: scaleX(-1); }
+  .tl-illustration-zone--c { left: 61.1%; top: 55.3%; width: 77.8%; height: 26.8%; transform: rotate(180deg); }
+  .tl-illustration-zone--a svg { animation-delay: 0s; }
+  .tl-illustration-zone--b svg { animation-delay: -2s; }
+  .tl-illustration-zone--c svg { animation-delay: -4s; }
+
+  @keyframes tl-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tl-illustration-zone svg { animation: none; }
+  }
+
+  .tl-ellipse {
+    position: absolute; left: 50%; top: 265px; width: 304px; height: 304px;
+    transform: translateX(-50%); border-radius: 50%; background: #FFDD00;
+    display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+    z-index: 2;
+  }
+  .tl-ellipse p { font-size: 20px; line-height: 24px; font-weight: 600; text-align: center; margin: 0; max-width: 223px; }
+
+  .tl-nav {
+    position: absolute; left: 40px; right: 37px; bottom: 40px;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem; z-index: 3;
+  }
+  .tl-back {
+    width: 56px; height: 56px; border-radius: 50%; background: #fff; border: 1.5px solid #F9ECD4;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+    padding: 0;
+  }
+  .tl-back svg { width: 20px; height: 20px; }
+  .tl-next {
+    /* Figma's pill hugs its own content and sits flush right via space-between on .tl-nav —
+       not a full-width CTA — so no flex-grow here, unlike the equivalent button elsewhere
+       in the main mockup. */
+    flex: 0 0 auto; min-height: 56px; border-radius: 999px;
+    background: #fff; border: 1.5px solid #F9ECD4; display: inline-flex; align-items: center;
+    justify-content: center; gap: 8px; cursor: pointer; font-family: inherit;
+    font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: #000; padding: 16px 24px;
+  }
+  .tl-next svg { width: 18px; height: 18px; }
+
+  button:focus-visible { outline: 3px solid #000; outline-offset: 3px; }
+
+  @media (forced-colors: active) {
+    .tl-back, .tl-next { forced-color-adjust: none; border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  }
+</style>
+</head>
+<body>
+
+<p class="frame-label">Single-page focus — matching <a href="https://www.figma.com/design/GshAzt5UX8h2HbMmqpJ4Ui/Untitled?node-id=1-394" target="_blank" rel="noopener">Figma node 1:394</a>. Illustration zones reuse the delivered baby_bottle.svg (mirrored/rotated) as a temporary treatment.</p>
+
+<div class="phone">
+  <h1 class="tl-headline">What's a toy library?</h1>
+
+  <div class="tl-illustration-zone tl-illustration-zone--a" aria-hidden="true">
+    <svg width="202" height="288" viewBox="0 0 202 288" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <g clip-path="url(#clip0_1_925a)">
+        <path d="M113.01 63.2275C118.022 66.5408 121.9 70.9164 124.229 76.2705C133.328 97.2124 115.231 125.255 83.8094 138.904C52.3875 152.553 19.5431 146.641 10.4497 125.699C8.11478 120.321 7.56857 114.475 8.58296 108.527" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M52.8081 31.2113C76.9552 25.8093 99.8238 33.4622 107.471 51.0608L115.502 69.5538C124.601 90.4957 108.689 117.59 79.9743 130.063C51.2535 142.541 20.5939 135.681 11.4945 114.733L3.46343 96.2399C-4.11143 78.7973 5.65425 57.0931 25.7198 43.1138" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.3543 31.0968C77.3033 25.9289 99.8839 33.5998 107.471 51.0604C116.57 72.0023 100.658 99.0905 71.9373 111.569C43.2164 124.048 12.5569 117.187 3.46343 96.2454C-4.11143 78.8029 5.65425 57.0986 25.7198 43.1194" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.8098 32.9826L53.7138 32.7606C52.7534 30.5517 52.4593 28.1208 52.8674 25.7439C53.5337 21.8184 53.1015 17.6228 51.3729 13.6493C46.7751 3.07334 34.7706 -1.91454 24.5608 2.52113C14.3509 6.95681 9.80118 19.1354 14.3989 29.7174C16.1216 33.6909 18.8946 36.8661 22.2199 39.0629C24.2306 40.3894 25.8092 42.2621 26.7696 44.471L26.8656 44.6931C28.6843 48.8826 28.0001 53.6845 25.233 57.3218C20.1611 63.9843 18.3544 71.4932 21.0974 77.8136C26.0073 89.1158 43.612 92.3631 60.4183 85.0643C77.2246 77.7656 86.8643 62.6819 81.9544 51.3796C79.2054 45.0532 72.4829 41.2538 64.1517 40.4134C59.608 39.9513 55.6285 37.1782 53.8098 32.9886V32.9826Z" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M126.828 86.1206C139.079 86.7088 150.393 94.1336 155.519 105.94L198.261 204.329C201.562 211.934 200.8 220.691 196.226 227.612L165.669 273.842C160.171 282.161 150.579 286.83 140.639 286.026L73.4679 280.588C64.4525 279.856 56.5715 274.22 52.9642 265.925L11.0503 169.432C5.87639 157.53 8.25328 144.103 16.3023 134.745" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M146.69 114.878C146.69 114.878 146.222 137.47 112.057 167.824C108.095 171.341 106.823 177.001 108.93 181.857L146.564 268.482" stroke="black" stroke-width="1.80068" stroke-miterlimit="10" stroke-linecap="round"/>
+      </g>
+      <defs><clipPath id="clip0_1_925a"><rect width="201.19" height="287.016" fill="white"/></clipPath></defs>
+    </svg>
+  </div>
+  <div class="tl-illustration-zone tl-illustration-zone--b" aria-hidden="true">
+    <svg width="202" height="288" viewBox="0 0 202 288" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <g clip-path="url(#clip0_1_925b)">
+        <path d="M113.01 63.2275C118.022 66.5408 121.9 70.9164 124.229 76.2705C133.328 97.2124 115.231 125.255 83.8094 138.904C52.3875 152.553 19.5431 146.641 10.4497 125.699C8.11478 120.321 7.56857 114.475 8.58296 108.527" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M52.8081 31.2113C76.9552 25.8093 99.8238 33.4622 107.471 51.0608L115.502 69.5538C124.601 90.4957 108.689 117.59 79.9743 130.063C51.2535 142.541 20.5939 135.681 11.4945 114.733L3.46343 96.2399C-4.11143 78.7973 5.65425 57.0931 25.7198 43.1138" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.3543 31.0968C77.3033 25.9289 99.8839 33.5998 107.471 51.0604C116.57 72.0023 100.658 99.0905 71.9373 111.569C43.2164 124.048 12.5569 117.187 3.46343 96.2454C-4.11143 78.8029 5.65425 57.0986 25.7198 43.1194" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.8098 32.9826L53.7138 32.7606C52.7534 30.5517 52.4593 28.1208 52.8674 25.7439C53.5337 21.8184 53.1015 17.6228 51.3729 13.6493C46.7751 3.07334 34.7706 -1.91454 24.5608 2.52113C14.3509 6.95681 9.80118 19.1354 14.3989 29.7174C16.1216 33.6909 18.8946 36.8661 22.2199 39.0629C24.2306 40.3894 25.8092 42.2621 26.7696 44.471L26.8656 44.6931C28.6843 48.8826 28.0001 53.6845 25.233 57.3218C20.1611 63.9843 18.3544 71.4932 21.0974 77.8136C26.0073 89.1158 43.612 92.3631 60.4183 85.0643C77.2246 77.7656 86.8643 62.6819 81.9544 51.3796C79.2054 45.0532 72.4829 41.2538 64.1517 40.4134C59.608 39.9513 55.6285 37.1782 53.8098 32.9886V32.9826Z" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M126.828 86.1206C139.079 86.7088 150.393 94.1336 155.519 105.94L198.261 204.329C201.562 211.934 200.8 220.691 196.226 227.612L165.669 273.842C160.171 282.161 150.579 286.83 140.639 286.026L73.4679 280.588C64.4525 279.856 56.5715 274.22 52.9642 265.925L11.0503 169.432C5.87639 157.53 8.25328 144.103 16.3023 134.745" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M146.69 114.878C146.69 114.878 146.222 137.47 112.057 167.824C108.095 171.341 106.823 177.001 108.93 181.857L146.564 268.482" stroke="black" stroke-width="1.80068" stroke-miterlimit="10" stroke-linecap="round"/>
+      </g>
+      <defs><clipPath id="clip0_1_925b"><rect width="201.19" height="287.016" fill="white"/></clipPath></defs>
+    </svg>
+  </div>
+  <div class="tl-illustration-zone tl-illustration-zone--c" aria-hidden="true">
+    <svg width="202" height="288" viewBox="0 0 202 288" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <g clip-path="url(#clip0_1_925c)">
+        <path d="M113.01 63.2275C118.022 66.5408 121.9 70.9164 124.229 76.2705C133.328 97.2124 115.231 125.255 83.8094 138.904C52.3875 152.553 19.5431 146.641 10.4497 125.699C8.11478 120.321 7.56857 114.475 8.58296 108.527" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M52.8081 31.2113C76.9552 25.8093 99.8238 33.4622 107.471 51.0608L115.502 69.5538C124.601 90.4957 108.689 117.59 79.9743 130.063C51.2535 142.541 20.5939 135.681 11.4945 114.733L3.46343 96.2399C-4.11143 78.7973 5.65425 57.0931 25.7198 43.1138" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.3543 31.0968C77.3033 25.9289 99.8839 33.5998 107.471 51.0604C116.57 72.0023 100.658 99.0905 71.9373 111.569C43.2164 124.048 12.5569 117.187 3.46343 96.2454C-4.11143 78.8029 5.65425 57.0986 25.7198 43.1194" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M53.8098 32.9826L53.7138 32.7606C52.7534 30.5517 52.4593 28.1208 52.8674 25.7439C53.5337 21.8184 53.1015 17.6228 51.3729 13.6493C46.7751 3.07334 34.7706 -1.91454 24.5608 2.52113C14.3509 6.95681 9.80118 19.1354 14.3989 29.7174C16.1216 33.6909 18.8946 36.8661 22.2199 39.0629C24.2306 40.3894 25.8092 42.2621 26.7696 44.471L26.8656 44.6931C28.6843 48.8826 28.0001 53.6845 25.233 57.3218C20.1611 63.9843 18.3544 71.4932 21.0974 77.8136C26.0073 89.1158 43.612 92.3631 60.4183 85.0643C77.2246 77.7656 86.8643 62.6819 81.9544 51.3796C79.2054 45.0532 72.4829 41.2538 64.1517 40.4134C59.608 39.9513 55.6285 37.1782 53.8098 32.9886V32.9826Z" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M126.828 86.1206C139.079 86.7088 150.393 94.1336 155.519 105.94L198.261 204.329C201.562 211.934 200.8 220.691 196.226 227.612L165.669 273.842C160.171 282.161 150.579 286.83 140.639 286.026L73.4679 280.588C64.4525 279.856 56.5715 274.22 52.9642 265.925L11.0503 169.432C5.87639 157.53 8.25328 144.103 16.3023 134.745" stroke="black" stroke-width="1.80068" stroke-miterlimit="10"/>
+        <path d="M146.69 114.878C146.69 114.878 146.222 137.47 112.057 167.824C108.095 171.341 106.823 177.001 108.93 181.857L146.564 268.482" stroke="black" stroke-width="1.80068" stroke-miterlimit="10" stroke-linecap="round"/>
+      </g>
+      <defs><clipPath id="clip0_1_925c"><rect width="201.19" height="287.016" fill="white"/></clipPath></defs>
+    </svg>
+  </div>
+
+  <div class="tl-ellipse">
+    <p>Like a book library, but for toys. Borrow, play, return, swap — instead of buying something your child will outgrow in six months.</p>
+  </div>
+
+  <div class="tl-nav">
+    <button class="tl-back" type="button" aria-label="Go back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </button>
+    <button class="tl-next" type="button">
+      Next
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

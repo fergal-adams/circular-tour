@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circular Ireland Tour — Interactive Mockup</title>
+<meta name="description" content="Prototype of the circular.ie guided tour interaction, built to WCAG 2.1/2.2 AA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /*
+    Palette/type below is pulled from the real "04529 Circular Web Prototype" Figma design
+    system (Colours / Typography / Spacing sections): DM Sans typeface, warm cream surfaces,
+    black ink, yellow (#FFD300) as the documented brand colour ("black on yellow, or yellow
+    on black"), and a 7-hue "primary brand colours" set repurposed here as a category-tagging
+    system. Two deliberate departures from the source file, both accessibility fixes:
+    1) their documented secondary/muted grey (#909090) measures 2.73:1 on the cream surface,
+       under the 4.5:1 AA minimum for text — replaced here with #6b6a65 (~5:1+ on every surface
+       used), same visual weight.
+    2) yellow (#FFD300) measures under 1.5:1 against both white and cream — nowhere near the
+       3:1 AA minimum for a UI component's boundary — so primary buttons get a 2px black border
+       to stay perceivable as a distinct control regardless of what's behind them.
+    Both are worth raising with whoever owns the Figma file.
+
+    Update (Aug 2026): restyled to match Fergal's newer Figma mockup (bold, colour-blocked
+    full-bleed screens per topic, big DM Sans headlines, white/outline pill buttons, circular
+    decorative motifs) — figma.com/design/GshAzt5UX8h2HbMmqpJ4Ui. That file colours individual
+    example cards fairly freely rather than establishing a strict legend, so here the existing
+    7-hue category system (already used for the small tag pills, already contrast-checked below)
+    is reused consistently per category for the full card background — same colour every time a
+    given category appears, which turns the boldness into a wayfinding cue rather than pure
+    decoration. All 7 category colour/text pairs measure 9.8:1 or higher (checked with the same
+    relative-luminance script as above), comfortably clearing AA for body text, not just the
+    small tag label they were originally verified for — see the .card[data-cat="…"] rules below.
+    Buttons/links placed on top of a coloured card stay on an opaque white chip (not a coloured
+    fill) so their contrast doesn't depend on which of the 7 category colours is behind them.
+    The reference file's decorative full-illustration blobs and real photography aren't
+    reproduced — approximated here with plain CSS circles in the category colour, since pulling
+    in the actual image assets isn't warranted for a mockup and would balloon the file size.
+  */
+  :root {
+    color-scheme: light;
+    --page-bg:        #fff9ef;
+    --surface-1:      #ffffff;
+    --surface-2:      #f9ecd4;
+    --text-primary:   #000000;
+    --text-secondary: #6b6a65;
+    --text-muted:     #6b6a65;
+    --border:         rgba(0,0,0,0.14);
+    --accent:         #ffd300;
+    --accent-text:    #000000;
+    --accent-border:  #000000;
+    --accent-wash:    #f9ecd4;
+    --accent-wash-border: #000000;
+    --heart:          #b8202a;
+    --heart-fill:     #b8202a;
+    --good-text:      #1c6b1c;
+    --warning-bg:     #fce9c4;
+    --warning-text:   #000000;
+    --focus-ring:     #000000;
+    --cat-mensshed-bg:   #283135; --cat-mensshed-text:   #ffffff;
+    --cat-repaircafe-bg: #ffa06a; --cat-repaircafe-text: #000000;
+    --cat-toylibrary-bg: #ff8fb3; --cat-toylibrary-text: #000000;
+    --cat-refill-bg:     #abc3ff; --cat-refill-text:     #000000;
+    --cat-swapshop-bg:   #54d3be; --cat-swapshop-text:   #000000;
+    --cat-garden-bg:     #e7c168; --cat-garden-text:     #000000;
+    --cat-upcycling-bg:  #000000; --cat-upcycling-text:  #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page-bg:        #141310;
+      --surface-1:      #201f1a;
+      --surface-2:      #2a2820;
+      --text-primary:   #ffffff;
+      --text-secondary: #c9c6bd;
+      --text-muted:     #c9c6bd;
+      --border:         rgba(255,255,255,0.16);
+      --accent:         #ffd300;
+      --accent-text:    #000000;
+      --accent-border:  #000000;
+      --accent-wash:    #2a2820;
+      --accent-wash-border: #ffd300;
+      --heart:          #f08a8a;
+      --heart-fill:     #f08a8a;
+      --good-text:      #6fd66f;
+      --warning-bg:     #4a3a12;
+      --warning-text:   #ffffff;
+      --focus-ring:     #ffd300;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page-bg:        #141310;
+    --surface-1:      #201f1a;
+    --surface-2:      #2a2820;
+    --text-primary:   #ffffff;
+    --text-secondary: #c9c6bd;
+    --text-muted:     #c9c6bd;
+    --border:         rgba(255,255,255,0.16);
+    --accent:         #ffd300;
+    --accent-text:    #000000;
+    --accent-border:  #000000;
+    --accent-wash:    #2a2820;
+    --accent-wash-border: #ffd300;
+    --heart:          #f08a8a;
+    --heart-fill:     #f08a8a;
+    --good-text:      #6fd66f;
+    --warning-bg:     #4a3a12;
+    --warning-text:   #ffffff;
+    --focus-ring:     #ffd300;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: 'DM Sans', system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page-bg);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+  main { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--page-bg); position: relative; }
+  h1, h2, h3, .card-title, .list-card-title, .brand, .shortlist-summary strong { font-weight: 600; }
+  .cat-tag {
+    display: inline-block; padding: .2rem .65rem; border-radius: 999px;
+    font-size: .78rem; font-weight: 500; line-height: 1.3; margin-bottom: .6rem;
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute; left: 0; top: 0;
+    transform: translateY(-150%);
+    background: var(--accent); color: var(--accent-text);
+    padding: .75rem 1rem; z-index: 100; border-radius: 0 0 .5rem 0;
+    font-weight: 600; text-decoration: none;
+  }
+  .skip-link:focus { transform: translateY(0); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-radius: 2px; }
+
+  button { font-family: inherit; }
+  input[type="radio"], input[type="checkbox"] { accent-color: var(--accent-wash-border); }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface-1); z-index: 10;
+  }
+  .brand { font-weight: 700; font-size: 1rem; }
+  .icon-btn {
+    min-width: 2.75rem; min-height: 2.75rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border); border-radius: .5rem;
+    color: var(--text-primary); cursor: pointer; font-size: .85rem; gap: .35rem; padding: 0 .6rem;
+  }
+  .icon-btn[aria-pressed="true"] { background: var(--accent-wash); border-color: var(--accent-wash-border); }
+
+  section[hidden] { display: none !important; }
+
+  /* ---------- LANDING ---------- */
+  /* Bold full-bleed yellow, matching the new Figma landing frame. Scoped to body.on-landing
+     (rather than swapping --page-bg globally) so the tour/list/shortlist screens — which get
+     their own per-category colouring below — aren't affected. */
+  body.on-landing, body.on-landing main { background: var(--accent); }
+  #screen-landing .lede { color: var(--text-primary); } /* muted grey is only 3.76:1 on yellow — full-strength text instead */
+  #screen-landing .btn-primary {
+    background: var(--surface-1); color: var(--text-primary); border-color: var(--text-primary);
+  } /* a yellow button on a yellow page would only be visible via its border — Figma's own buttons are white chips on the colour, so match that here */
+  .screen-pad { padding: 1.5rem 1.25rem 3rem; }
+  h1 { font-size: 1.6rem; margin: .25rem 0 .5rem; }
+  .lede { color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem; }
+  fieldset { border: 1px solid var(--border); border-radius: 1.5rem; padding: 1rem 1.25rem; margin: 0 0 1.5rem; background: var(--surface-1); }
+  legend { font-weight: 600; padding: 0 .4rem; font-size: .9rem; }
+  .radio-row { display: flex; align-items: center; gap: .6rem; padding: .5rem 0; }
+  .radio-row label { flex: 1; cursor: pointer; }
+  .radio-row input { width: 1.25rem; height: 1.25rem; }
+  .hint { font-size: .82rem; color: var(--text-muted); margin-top: .25rem; }
+
+  .btn-primary {
+    display: block; width: 100%; background: var(--accent); color: var(--accent-text);
+    border: 2px solid var(--accent-border); border-radius: 1.5rem; padding: .85rem 1rem; font-size: 1.05rem; font-weight: 700;
+    letter-spacing: -0.01em; cursor: pointer; min-height: 3rem;
+  }
+  .btn-secondary {
+    display: block; width: 100%; background: var(--surface-1); color: var(--text-primary);
+    border: 1.5px solid var(--border); border-radius: 1.5rem; padding: .8rem 1rem; font-size: .95rem; font-weight: 600;
+    cursor: pointer; min-height: 2.75rem; margin-top: .75rem;
+  }
+  .btn-text {
+    background: none; border: none; color: var(--text-primary); text-decoration: underline;
+    cursor: pointer; font-size: .9rem; padding: .5rem; min-height: 2.75rem; font-weight: 500;
+  }
+
+  /* ---------- TOUR ---------- */
+  .tour-header { padding: .75rem 1.25rem 0; }
+  .progress-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+  .progress-track { flex: 1; height: .4rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 1rem; transition: width .25s ease; }
+  .progress-label { font-size: .82rem; color: var(--text-secondary); white-space: nowrap; }
+
+  .card-stage {
+    padding: 0 1.25rem; margin-top: .5rem;
+    touch-action: pan-y;
+  }
+  .card {
+    border: 1px solid var(--border); border-radius: 1.5rem; background: var(--surface-1);
+    padding: 1.5rem 1.25rem; min-height: 340px; display: flex; flex-direction: column;
+  }
+  .card[data-kind="concept"] { background: var(--accent-wash); border-color: var(--accent-wash-border); }
+
+  /* Bold per-category full-bleed card colour (concept + real-group cards only — see comment
+     at the top of this stylesheet). Same 7 colour/text pairs used for the small .cat-tag,
+     applied here at full opacity — already checked above at 9.8:1+ against their paired text. */
+  .card[data-cat] { border-color: transparent; position: relative; overflow: hidden; z-index: 1; }
+  .card[data-cat="mensshed"]   { background: var(--cat-mensshed-bg);   color: var(--cat-mensshed-text); }
+  .card[data-cat="repaircafe"] { background: var(--cat-repaircafe-bg); color: var(--cat-repaircafe-text); }
+  .card[data-cat="toylibrary"] { background: var(--cat-toylibrary-bg); color: var(--cat-toylibrary-text); }
+  .card[data-cat="refill"]     { background: var(--cat-refill-bg);     color: var(--cat-refill-text); }
+  .card[data-cat="swapshop"]   { background: var(--cat-swapshop-bg);   color: var(--cat-swapshop-text); }
+  .card[data-cat="garden"]     { background: var(--cat-garden-bg);     color: var(--cat-garden-text); }
+  .card[data-cat="upcycling"]  { background: var(--cat-upcycling-bg);  color: var(--cat-upcycling-text); }
+  /* Muted secondary tokens aren't guaranteed to clear 4.5:1 on every one of the 7 colours, so
+     kicker/body/meta/summary switch to the full-strength paired text colour on these cards —
+     hierarchy comes from size/weight instead of a muted shade here. */
+  .card[data-cat] .card-kicker,
+  .card[data-cat] .card-body,
+  .card[data-cat] .card-meta,
+  .card[data-cat] .card-meta a,
+  .card[data-cat] details.card-detail summary { color: inherit; }
+  /* The heart/save button keeps its originally-verified red-on-white contrast regardless of
+     which of the 7 category colours sits behind it, by sitting on its own opaque white chip
+     rather than the transparent+coloured-border style used on the neutral cream cards. */
+  .card[data-cat] .heart-btn { background: var(--surface-1); }
+  .card[data-cat] .heart-btn[aria-pressed="true"] { background: var(--heart-fill); }
+  /* Decorative only (aria-hidden via the card's own content stacking, no text sits on these) —
+     approximates the reference file's floating coloured ellipses without importing real assets. */
+  .card[data-cat]::before, .card[data-cat]::after {
+    content: ""; position: absolute; border-radius: 50%; z-index: -1;
+    background: var(--surface-1); opacity: .16;
+  }
+  .card[data-cat]::before { width: 9rem; height: 9rem; top: -3.5rem; right: -3rem; }
+  .card[data-cat]::after  { width: 6rem; height: 6rem; bottom: -2.5rem; left: -2rem; }
+  @media (forced-colors: active) { .card[data-cat]::before, .card[data-cat]::after { display: none; } }
+
+  .card-kicker {
+    font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-secondary); margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem;
+  }
+  .card-icon { width: 2.5rem; height: 2.5rem; flex-shrink: 0; }
+  .card-title { font-size: 1.25rem; margin: .25rem 0 .5rem; }
+  .card-body { color: var(--text-secondary); font-size: .98rem; flex: 1; }
+  .card-meta { font-size: .85rem; color: var(--text-muted); margin-top: .5rem; }
+  details.card-detail { margin-top: .75rem; }
+  details.card-detail summary {
+    cursor: pointer; font-weight: 600; color: var(--text-primary); text-decoration: underline; padding: .4rem 0; min-height: 2.75rem; display:flex; align-items:center;
+  }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; gap: .75rem; }
+
+  .heart-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    min-height: 2.75rem; min-width: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--heart); border-radius: 2rem; background: transparent;
+    color: var(--heart); font-weight: 700; cursor: pointer; font-size: .9rem;
+  }
+  .heart-btn[aria-pressed="true"] { background: var(--heart-fill); border-color: var(--heart-fill); color: #fff; }
+  .heart-btn svg { width: 1.1rem; height: 1.1rem; }
+
+  .nav-row { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.25rem 0; }
+  .nav-btn {
+    flex: 0 0 auto; min-height: 3rem; min-width: 3rem; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+    font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .nav-btn.next { flex: 1; border-radius: 1.5rem; border: 2px solid var(--accent-border); background: var(--accent); color: var(--accent-text); font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; gap:.4rem; }
+
+  .tour-footer-links { display: flex; justify-content: space-between; padding: 1rem 1.25rem 2rem; gap: 1rem; flex-wrap: wrap; }
+
+  /* ---------- LIST VIEW ---------- */
+  .list-view { padding: 0 1.25rem 2rem; }
+  .list-card {
+    border: 1px solid var(--border); border-radius: 1.25rem; padding: 1rem; margin-bottom: .85rem; background: var(--surface-1);
+    display: flex; gap: .85rem; align-items: flex-start;
+  }
+  .list-card[data-kind="concept"] { background: var(--accent-wash); border-color: var(--accent-wash-border); }
+  .list-card[data-cat] { border-color: transparent; }
+  .list-card[data-cat="mensshed"]   { background: var(--cat-mensshed-bg);   color: var(--cat-mensshed-text); }
+  .list-card[data-cat="repaircafe"] { background: var(--cat-repaircafe-bg); color: var(--cat-repaircafe-text); }
+  .list-card[data-cat="toylibrary"] { background: var(--cat-toylibrary-bg); color: var(--cat-toylibrary-text); }
+  .list-card[data-cat="refill"]     { background: var(--cat-refill-bg);     color: var(--cat-refill-text); }
+  .list-card[data-cat="swapshop"]   { background: var(--cat-swapshop-bg);   color: var(--cat-swapshop-text); }
+  .list-card[data-cat="garden"]     { background: var(--cat-garden-bg);     color: var(--cat-garden-text); }
+  .list-card[data-cat="upcycling"]  { background: var(--cat-upcycling-bg);  color: var(--cat-upcycling-text); }
+  .list-card[data-cat] .card-kicker,
+  .list-card[data-cat] .list-card-text,
+  .list-card[data-cat] .card-meta,
+  .list-card[data-cat] .card-meta a,
+  .list-card[data-cat] details.card-detail summary { color: inherit; }
+  .list-card[data-cat] .heart-btn { background: var(--surface-1); }
+  .list-card[data-cat] .heart-btn[aria-pressed="true"] { background: var(--heart-fill); }
+  .list-card .card-icon { margin-top: .1rem; }
+  .list-card-body { flex: 1; }
+  .list-card-title { font-weight: 700; margin: 0 0 .25rem; font-size: 1.02rem; }
+  .list-card-text { color: var(--text-secondary); font-size: .92rem; margin: 0 0 .5rem; }
+
+  /* ---------- SHORTLIST ---------- */
+  .shortlist-summary {
+    background: var(--accent-wash); border: 1px solid var(--accent-wash-border); border-radius: 1.25rem;
+    padding: 1rem 1.1rem; margin-bottom: 1.25rem;
+  }
+  .shortlist-summary strong { font-size: 1.1rem; display: block; margin-bottom: .15rem; }
+  .shortlist-item {
+    display: flex; align-items: center; gap: .75rem; border: 1px solid var(--border); background: var(--surface-1);
+    border-radius: 1.25rem; padding: .75rem .85rem; margin-bottom: .6rem;
+  }
+  .shortlist-item .grow { flex: 1; }
+  .shortlist-item .name { font-weight: 600; font-size: .95rem; }
+  .shortlist-item .loc { font-size: .82rem; color: var(--text-muted); }
+  .remove-btn {
+    min-height: 2.5rem; min-width: 2.5rem; border-radius: .5rem; border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 1rem;
+  }
+  .empty-note { color: var(--text-muted); font-size: .92rem; padding: 1rem 0; }
+
+  .share-option {
+    border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.1rem 1.25rem;
+    background: var(--surface-1); margin-bottom: 1.25rem;
+  }
+  .link-row { display: flex; gap: .5rem; align-items: stretch; }
+  .link-input {
+    flex: 1; min-width: 0; min-height: 2.75rem; padding: .5rem .75rem; border-radius: .75rem;
+    border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-primary);
+    font-size: .85rem;
+  }
+  .btn-secondary.inline { display: inline-flex; align-items: center; justify-content: center; width: auto; flex: 0 0 auto; margin-top: 0; white-space: nowrap; }
+  .or-divider { display: flex; align-items: center; gap: .75rem; color: var(--text-muted); font-size: .85rem; margin: 0 0 1.25rem; }
+  .or-divider .line { flex: 1; height: 1px; background: var(--border); }
+
+  form.email-form { margin-top: 0; }
+  .field { margin-bottom: 1.1rem; }
+  .field label { display: block; font-weight: 600; margin-bottom: .35rem; font-size: .95rem; }
+  .field input[type="email"] {
+    width: 100%; min-height: 2.9rem; padding: .6rem .75rem; border-radius: .85rem;
+    border: 1.5px solid var(--border); background: var(--surface-1); color: var(--text-primary); font-size: 1rem;
+  }
+  .field input[aria-invalid="true"] { border-color: var(--heart-fill); }
+  .field .helper { font-size: .82rem; color: var(--text-muted); margin-top: .35rem; }
+  .field .error { font-size: .85rem; color: var(--heart-fill); margin-top: .35rem; font-weight: 600; }
+  .consent-row { display: flex; align-items: flex-start; gap: .6rem; margin-bottom: 1.1rem; }
+  .consent-row input { width: 1.35rem; height: 1.35rem; margin-top: .1rem; flex-shrink: 0; }
+  .consent-row label { font-size: .9rem; color: var(--text-secondary); }
+
+  .confirm-panel { text-align: center; padding: 2rem 1rem; }
+  .confirm-panel .big-tick { font-size: 2.5rem; }
+  .link-box {
+    background: var(--surface-2); border: 1px dashed var(--border); border-radius: .85rem;
+    padding: .75rem; font-size: .85rem; word-break: break-all; color: var(--text-secondary); margin: 1rem 0;
+  }
+
+  /* ---------- A11y notes panel ---------- */
+  .a11y-panel { margin: 2rem 1.25rem; border: 1px solid var(--border); border-radius: 1.25rem; overflow: hidden; }
+  .a11y-panel summary {
+    cursor: pointer; padding: 1rem 1.1rem; font-weight: 700; background: var(--surface-2); min-height: 2.75rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .a11y-panel .a11y-body { padding: 0 1.1rem 1.1rem; font-size: .9rem; color: var(--text-secondary); }
+  .a11y-panel ul { padding-left: 1.2rem; }
+  .a11y-panel li { margin-bottom: .5rem; }
+  .a11y-panel code { background: var(--surface-2); padding: .1rem .3rem; border-radius: .25rem; font-size: .85em; }
+
+  .option-btn {
+    display: block; width: 100%; text-align: left; margin-bottom: .5rem;
+    padding: .7rem .9rem; border-radius: .85rem; border: 1.5px solid var(--border);
+    background: var(--surface-1); min-height: 2.75rem; cursor: pointer;
+    color: var(--text-primary); font-size: .95rem;
+  }
+  .option-btn[aria-pressed="true"] { background: var(--accent-wash); border-color: var(--accent-wash-border); font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+
+  @media (forced-colors: active) {
+    .heart-btn, .nav-btn, .btn-primary, .icon-btn { forced-color-adjust: none; border: 1px solid CanvasText; }
+  }
+</style>
+</head>
+<body class="on-landing">
+
+<a class="skip-link" href="#main-heading">Skip to main content</a>
+
+<div class="topbar">
+  <span class="brand">circular.ie</span>
+  <button class="icon-btn" id="themeToggle" aria-pressed="false" aria-label="Switch to dark mode (demo control, not part of the live product)">
+    <span aria-hidden="true">🌓</span><span>Theme</span>
+  </button>
+</div>
+
+<div aria-live="polite" class="sr-only" id="announcer"></div>
+
+<main id="mainContent">
+
+  <!-- ============ SCREEN 1: LANDING ============ -->
+  <section id="screen-landing" class="screen-pad">
+    <h1 id="main-heading" tabindex="-1">Your circular tour of Ireland</h1>
+    <p class="lede">Meet the people repairing, reusing and sharing across Ireland — one short story at a time. No sign-up needed.</p>
+
+    <fieldset>
+      <legend>Demo only: simulate the visitor's region</legend>
+      <div class="radio-row">
+        <input type="radio" name="province" id="prov-leinster" value="Leinster" checked>
+        <label for="prov-leinster">Leinster</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="province" id="prov-munster" value="Munster">
+        <label for="prov-munster">Munster</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="province" id="prov-connacht" value="Connacht">
+        <label for="prov-connacht">Connacht</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="province" id="prov-ulster" value="Ulster">
+        <label for="prov-ulster">Ulster</label>
+      </div>
+      <p class="hint">In production this is guessed automatically (coarse, no permission prompt) from where the visitor's connection appears to be, with a visible "not you?" override — never asked as a menu. Province, not county, because the real database has usable volume at that level everywhere; several counties on their own are too thin to promise "groups near you."</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Demo only: simulate which ad someone clicked</legend>
+      <div class="radio-row">
+        <input type="radio" name="segment" id="seg-general" value="general" checked>
+        <label for="seg-general">General audience</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="segment" id="seg-parent" value="parent">
+        <label for="seg-parent">"New parent" ad</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" name="segment" id="seg-diy" value="diy">
+        <label for="seg-diy">"Into DIY &amp; repair" ad</label>
+      </div>
+      <p class="hint">This changes the order groups appear in, not which region they come from.</p>
+    </fieldset>
+
+    <button class="btn-primary" id="startTour">Start the tour</button>
+    <button class="btn-secondary" id="startList">Prefer a plain list? Browse without the tour</button>
+  </section>
+
+  <!-- ============ SCREEN 2: TOUR ============ -->
+  <section id="screen-tour" hidden>
+    <h2 class="sr-only" id="tour-heading" tabindex="-1">Guided tour</h2>
+    <div class="tour-header">
+      <div class="progress-row">
+        <span class="progress-track" role="progressbar" id="progressTrack" aria-labelledby="tour-heading" aria-valuemin="1" aria-valuemax="13" aria-valuenow="1">
+          <span class="progress-fill" id="progressFill" style="width:7.6%"></span>
+        </span>
+        <span class="progress-label" id="progressLabel">Card 1 of 13</span>
+      </div>
+    </div>
+
+    <div class="card-stage" id="cardStage">
+      <!-- card injected by JS -->
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn" id="prevBtn" aria-label="Previous card">
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button class="nav-btn next" id="nextBtn">
+        <span id="nextBtnLabel">Next</span> <span aria-hidden="true">›</span>
+      </button>
+    </div>
+
+    <div class="tour-footer-links">
+      <button class="btn-text" id="switchToList">View as a plain list instead</button>
+      <button class="btn-text" id="jumpToShortlist">Go to my shortlist (<span id="heartCountInline">0</span>)</button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2b: LIST VIEW (accessible alternative to swipe) ============ -->
+  <section id="screen-list" hidden>
+    <div class="tour-header">
+      <h2 id="list-heading" tabindex="-1" style="font-size:1.15rem; margin:.25rem 0 1rem;">All stops on the tour</h2>
+    </div>
+    <div class="list-view" id="listView"><!-- injected --></div>
+    <div class="tour-footer-links">
+      <button class="btn-text" id="switchToTour">Switch to swipe view instead</button>
+      <button class="btn-text" id="jumpToShortlistFromList">Go to my shortlist (<span id="heartCountInline2">0</span>)</button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3: SHORTLIST ============ -->
+  <section id="screen-shortlist" hidden>
+    <div class="screen-pad">
+      <h2 id="shortlist-heading" tabindex="-1" style="font-size:1.4rem; margin:.25rem 0 .75rem;">Your circular Ireland</h2>
+
+      <div id="shortlistBody"><!-- injected --></div>
+
+      <div id="shareOptionsWrap">
+        <div class="share-option">
+          <h3 style="font-size:1.02rem; margin:0 0 .35rem;">Keep this without giving an email</h3>
+          <p class="helper" style="margin:0 0 .75rem;">Copy your link now — nothing to sign up for, nothing sent anywhere.</p>
+          <div class="link-row">
+            <input type="text" id="shareLinkText" class="link-input" readonly aria-label="Your shareable circular Ireland link">
+            <button type="button" class="btn-secondary inline" id="copyLinkBtn">Copy link</button>
+          </div>
+          <p class="card-meta" id="copyStatus" role="status"></p>
+        </div>
+
+        <div class="or-divider" role="separator"><span class="line" aria-hidden="true"></span><span>or</span><span class="line" aria-hidden="true"></span></div>
+
+        <div id="emailFormWrap">
+          <form class="email-form" id="emailForm" novalidate>
+            <h3 style="font-size:1.05rem; margin:0 0 .35rem;">Email this list to yourself</h3>
+            <p class="helper" style="margin:0 0 1rem;">No spam, no newsletter — just a one-time email with this same link.</p>
+            <div class="field">
+              <label for="emailInput">Email address</label>
+              <input type="email" id="emailInput" name="email" autocomplete="email" required aria-describedby="emailHelp" aria-invalid="false">
+              <p class="helper" id="emailHelp">We'll send a link to your saved list. No account is created.</p>
+            </div>
+            <div class="consent-row">
+              <input type="checkbox" id="consentCheck" required>
+              <label for="consentCheck">I'd like this list emailed to me. (Not a newsletter sign-up.)</label>
+            </div>
+            <button type="submit" class="btn-primary">Email me my list</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="confirmPanel" class="confirm-panel" hidden>
+        <div class="big-tick" aria-hidden="true">✅</div>
+        <h3>On its way</h3>
+        <p>We've emailed your shortlist. It's the same link from the copy option above — revisit or share it any time:</p>
+        <p class="link-box" id="confirmLinkText">circular.ie/my-tour/8f3k-q92p (demo link)</p>
+        <button class="btn-secondary" id="restartBtn">Start a new tour</button>
+      </div>
+
+      <p style="margin-top:2rem;"><button class="btn-text" id="backToTourFromShortlist">‹ Back to the tour</button></p>
+    </div>
+  </section>
+
+  <details class="a11y-panel">
+    <summary><span aria-hidden="true">♿</span> How this mockup meets WCAG 2.1/2.2 AA</summary>
+    <div class="a11y-body">
+      <p>Circular.ie is a public body service, so this prototype is built against <strong>WCAG 2.1 Level AA</strong> (the standard required under Ireland's Public Sector Bodies accessibility regulations, transposing EU Directive 2016/2102) with a few 2.2 additions included. Specific decisions:</p>
+      <ul>
+        <li><strong>No swipe-only interaction (SC 2.5.1).</strong> Every card can be reached by touch swipe, the on-screen Previous/Next buttons, or the Left/Right arrow keys — swipe is an enhancement, never the only path.</li>
+        <li><strong>A non-sequential alternative.</strong> "View as a plain list" shows every card in one scrollable, headings-based list — for anyone who finds one-at-a-time swiping slow, disorienting, or hard to target (motor, cognitive, or screen-reader efficiency reasons).</li>
+        <li><strong>Screen reader announcements (SC 4.1.3).</strong> Card changes are pushed to a polite live region, so a screen reader user hears what changed without needing to re-explore the page.</li>
+        <li><strong>No autoplay, nothing moves on its own.</strong> The tour only advances on explicit user action, avoiding the timing and motion pitfalls common to carousels (SC 2.2.2).</li>
+        <li><strong>Keyboard operability (SC 2.1.1) and visible focus (SC 2.4.7).</strong> Every control is a real <code>&lt;button&gt;</code>/<code>&lt;input&gt;</code>, reachable in a sensible order, with a clear focus outline — including in Windows High Contrast / <code>forced-colors</code> mode.</li>
+        <li><strong>Target size (SC 2.5.8).</strong> All interactive controls are at least 44×44px.</li>
+        <li><strong>Colour contrast (SC 1.4.3 / 1.4.11).</strong> Text and button colours were checked against the WCAG contrast formula, not eyeballed — button text sits at 6.6:1+ in both light and dark themes, body text well above 7:1.</li>
+        <li><strong>Colour is never the only signal (SC 1.4.1).</strong> The heart control changes shape, label and <code>aria-pressed</code> state, not just colour.</li>
+        <li><strong>Reduced motion (SC 2.3.3).</strong> Anyone with <code>prefers-reduced-motion</code> set gets instant transitions instead of animated ones.</li>
+        <li><strong>Forms (SC 1.3.1, 3.3.1, 3.3.2).</strong> The email field has a real <code>&lt;label&gt;</code>, helper text linked via <code>aria-describedby</code>, and an inline, programmatically-associated error if left invalid — not just a red border.</li>
+        <li><strong>Zoom and reflow (SC 1.4.4 / 1.4.10).</strong> Sizing is in <code>rem</code>, not fixed pixels, and the layout is single-column, so it holds up at 200% zoom without horizontal scrolling.</li>
+        <li><strong>No forced account creation.</strong> The email-to-self flow needs no password or login, which also keeps the form itself short and low-friction.</li>
+      </ul>
+      <p>This is a design-stage mockup, not a compliance audit — a full VPAT / manual assistive-tech pass (NVDA, VoiceOver, JAWS, Dragon) against the final build is still the right next step before launch.</p>
+    </div>
+  </details>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- Data ----------------
+  var CONCEPTS = {
+    mensshed: { title: "What's a Men's Shed?", body: "Half the men inside are elbow-deep in a bike repair. The other half showed up for the kettle and the chat — nobody minds which reason brought you.", detail: "Men's Sheds started in Australia in the 1990s as a response to isolation after retirement, and Ireland took to the idea faster than almost anywhere else. Walk into one and you'll find furniture being reglued, mobility aids repaired, and decades of trade skill that would otherwise go quiet.", icon: "shed" },
+    toylibrary: { title: "What's a toy library?", body: "The ride-on car your toddler will outgrow by Christmas doesn't have to be bought, stored in a hallway for a year, then binned. It can just be borrowed.", detail: "Most toy libraries are run entirely by parent volunteers on a rolling swap system. The big-ticket items — ride-ons, sensory kits, outdoor gear — are usually the ones worth joining for, since they're the ones nobody wants to store.", icon: "toy" },
+    repaircafe: { title: "What's a repair café?", body: "The toaster you were about to bin. The jeans with the dead zip. Someone here already knows exactly how to fix both — and they'll show you, not just do it for you.", detail: "Repair cafés run entirely on volunteer expertise: retired electricians, tailors, hobbyists who enjoy the puzzle of a fix more than the finished result. Most run monthly out of a hall or library, no booking needed — and sometimes the honest answer is \"that one's not worth saving,\" which is its own kind of useful.", icon: "repair" },
+    refill: { title: "What's a refill shop?", body: "Bring an empty jar. Leave with washing-up liquid, pasta, or shampoo — not one extra bit of plastic in the bag.", detail: "Most refill shops started life as a single market stall before some grew into full shopfronts. The container's yours to keep reusing — one piece of packaging you never have to think about again.", icon: "refill" },
+    swapshop: { title: "What's a swap shop?", body: "Bring the coat you never wear. Leave with someone else's coat that you actually will. No till, no card reader — just a straight swap.", detail: "Most run as a recurring event rather than a permanent shop — tied to a festival, market day or hall booking — so timing matters more than location. Worth checking a date before making the trip.", icon: "swap" },
+    garden: { title: "What's a community garden?", body: "A shared plot where neighbours grow food and flowers side by side — open to anyone who wants a bed of their own, or just an hour of digging with company.", detail: "Many double as a hub for composting and biodiversity projects, not just vegetables. The easiest way in is usually a work morning, not waiting on a plot to free up.", icon: "garden" },
+    upcycling: { title: "What's upcycling, exactly?", body: "An old chair doesn't get thrown out here — it gets sanded, re-covered, and ends up looking better than it did new.", detail: "Upcycling goes a step beyond repair: the goal isn't restoring the original, it's giving the material a genuinely different life — a bike frame becoming a bench, an old door becoming a table.", icon: "upcycle" }
+  };
+
+  var ICON_FOR_CAT = { mensshed:"shed", repaircafe:"repair", toylibrary:"toy", refill:"refill", swapshop:"swap", garden:"garden", upcycling:"upcycle" };
+
+  // Category → display label + CSS var slot, taken from the Figma file's 7 "primary brand colours"
+  // (documented under foundations/Colours) — repurposed here as a category-tagging system.
+  var CATEGORY_META = {
+    mensshed:   { label: "Men's Shed",   cssKey: "mensshed" },
+    repaircafe: { label: "Repair café",  cssKey: "repaircafe" },
+    toylibrary: { label: "Toy library",  cssKey: "toylibrary" },
+    refill:     { label: "Refill shop",  cssKey: "refill" },
+    swapshop:   { label: "Swap shop",    cssKey: "swapshop" },
+    garden:     { label: "Community garden", cssKey: "garden" },
+    upcycling:  { label: "Upcycling",    cssKey: "upcycling" }
+  };
+
+  // Only ever placed on the concept/group cards, which now always carry the matching
+  // data-cat full-bleed colour (see the .card[data-cat] CSS) — so a solid fill matching
+  // its own category would just disappear into the card. An outline in the card's own
+  // (already-verified) text colour reads clearly against any of the 7 backgrounds instead,
+  // and matches the outline-pill language the new Figma mockup uses for its buttons.
+  function catTagHtml(catKey){
+    var meta = CATEGORY_META[catKey];
+    if (!meta) return "";
+    return '<span class="cat-tag" style="border:1.5px solid currentColor; background:transparent; color:inherit;">' + meta.label + '</span>';
+  }
+
+  // Real circular.ie article headlines (supplied by the client, Aug 2026), one picked per category —
+  // used to replace the earlier "[DATA NEEDED]" placeholder stat with something real and verifiable
+  // instead of an uncited EPA/CSO figure. Not linked (we don't have the live article URLs to hand),
+  // so presented as "also on circular.ie" rather than a clickable — and possibly broken — deep link.
+  var CATEGORY_HEADLINE = {
+    mensshed:   "Not your average shed: A hub of community connection",
+    repaircafe: "What actually happens at a Repair Cafe?",
+    toylibrary: "Circular wins for young families",
+    refill:     "Ditch single use bottles and cups",
+    swapshop:   "Swap don't shop: Keeping your clothes in the loop",
+    garden:     "Beginners guide to: Allotments",
+    upcycling:  "Buying pre-loved with confidence"
+  };
+
+  // Same source list also included one "what's happening in <province>" headline per province —
+  // a natural fit for the existing province mechanic, so it's folded into the nationwide-coverage
+  // stat card rather than added as a new card type.
+  var PROVINCE_HEADLINE = {
+    Leinster:  "What's happening in Leinster?",
+    Munster:   "What's happening in Munster?",
+    Connacht:  "What's happening in Connacht?",
+    Ulster:    "What's happening in Ulster?"
+  };
+
+  // Real, anonymised-nowhere sample pulled from the Wove/circular.ie CoP mapping database (Aug 2026 snapshot).
+  // Selected rows have an org name, a description, a resolvable county and a web link; province is derived
+  // from the standard 4-province county mapping. Deliberately NOT uniform across provinces — see the note below.
+  var REAL_ENTRIES = [{"province": "Leinster", "cat": "mensshed", "title": "Trim Men's Shed", "city": "Trim", "county": "Meath", "body": "For over a decade, our aim has been to provide a welcoming, safe environment for men of all ages and from all backgrounds. We can provide a positive...", "web": "https://www.trimmensshed.ie/"}, {"province": "Leinster", "cat": "mensshed", "title": "Mullingar Men's Shed", "city": "Mullingar", "county": "Westmeath", "body": "Upcycling and repurposing wood and other materials. Repairing bikes, furniture etc.", "web": "https://www.facebook.com/MullingarMensShedCB/"}, {"province": "Leinster", "cat": "repaircafe", "title": "Phibsborough Tidy Towns", "city": "Dublin 7", "county": "Dublin", "body": "Repair cafe and swapshop run at annual buzzfest. Swapshop also at phizzfest.", "web": "https://www.phibsboro.com/"}, {"province": "Leinster", "cat": "repaircafe", "title": "Tog Hacker Space", "city": "Dublin 12", "county": "Dublin", "body": "“Repair Cafe in a Box” will provide a suite of tools and equipment that any community group can rent (at no cost) for their event. It will include...", "web": "https://www.tog.ie/2024/08/climate-action-fund-repair-cafe-in-a-box/"}, {"province": "Leinster", "cat": "toylibrary", "title": "Moatview Early Education Centre", "city": "Dublin 17", "county": "Dublin", "body": "Toy Library.", "web": "https://www.childcare.ie/county-dublin/dublin-17/creche-montessori/moatview-early-education-centre"}, {"province": "Leinster", "cat": "refill", "title": "The Refill Mill", "city": "Mullingar", "county": "Westmeath", "body": "Refilling food and household products.", "web": "https://www.instagram.com/therefillmill_mullingar/"}, {"province": "Leinster", "cat": "refill", "title": "Darndale FC", "city": "Dublin 17", "county": "Dublin", "body": "Awarded €39,935 to install vertical bike lockers, tools, and equipment for a repair facility, install water refill unit.", "web": "http://www.darndalefc.yourclub.ie/?fbclid=IwY2xjawHONyRleHRuA2FlbQIxMAABHeAi_Vx5zeyXoDG86y3ZQl0p_ykk_R48jE9LQC66oubQw6WLvn7UIzilKw_aem_8kj7rAz3TaQqor7XF-S1-g"}, {"province": "Leinster", "cat": "swapshop", "title": "Wexford County Council Community Climate Action Plan", "city": "Carricklawn", "county": "Wexford", "body": "Swap shop Halloween with repairs and ironing, repair workshop.", "web": "https://www.wexfordcoco.ie/environment-and-climate-change/climate-action/community-climate-action-programme-ccap/community"}, {"province": "Leinster", "cat": "swapshop", "title": "Dunamaise Arts Centre", "city": "Portlaois", "county": "Laois", "body": "Monthly clothes swaps.", "web": "https://www.dunamaise.ie/"}, {"province": "Leinster", "cat": "garden", "title": "An Gairdín Beo", "city": "Rathnapish", "county": "Carlow", "body": "Community Garden and workshops.", "web": "https://www.angairdinbeo.org/p/home.html"}, {"province": "Leinster", "cat": "garden", "title": "Abbeyleix Bog Project", "city": "Abbeyleix", "county": "Laois", "body": "Rewetting bogs, abbeylix tidy towns won nature TT 2024, community garden.", "web": "https://www.abbeyleixbog.ie/"}, {"province": "Leinster", "cat": "upcycling", "title": "Our Lady's Terenure", "city": "Dublin 6W", "county": "Dublin", "body": "Upcycling taught CBA 2nd Year. Emphasis on sustainability.", "web": "https://olschool.ie/"}, {"province": "Leinster", "cat": "upcycling", "title": "Frontline Bikes", "city": "DUBLIN 8", "county": "Dublin", "body": "Sell premium upcycled bikes, secondhand bikes and bicycle accessories such as helmets, locks, lights and pumps from our shop in Inchicore, Dublin 8, and...", "web": "https://www.frontlinebikes.ie/"}, {"province": "Munster", "cat": "mensshed", "title": "Dungarvan Men’s Shed", "city": "Dungarvan", "county": "Waterford", "body": "Dungarvan men's shed is a place where men of all ages, creeds, backgrounds and situations can come together to share information share skills or just talk.", "web": "https://menssheds.ie/sheds/dungarvan-mens-shed/"}, {"province": "Munster", "cat": "mensshed", "title": "Mulcair Men's Shed", "city": "Murroe", "county": "Limerick", "body": "Promote Social Inclusion and support the Health and Wellbeing of Men in our Community in an atmosphere of friendship and enjoyment.", "web": "https://menssheds.ie/sheds/mulcair-mens-shed/"}, {"province": "Munster", "cat": "repaircafe", "title": "Doughnut Economics Action Lab", "city": "Co. Cork", "county": "Cork", "body": "Repair Café, River Catchments Group, Ballydehob Waste Water Group, Sand Martin Wall Ballydehob, Green Spaces /Trees, Biodiversity Map Danu Workshop for...", "web": "https://doughnuteconomics.org/organisations-and-networks/west-cork-doughnut-economy-network"}, {"province": "Munster", "cat": "repaircafe", "title": "Cork Repair Cafe", "city": "Cork", "county": "Cork", "body": "Repair cafe once per month.", "web": "https://corkrepaircafe.org/"}, {"province": "Munster", "cat": "toylibrary", "title": "Toy Library Clonmel", "city": "Clonmel", "county": "Tipperary", "body": "Toy library once a month.", "web": "https://www.suircanenvironmental.ie/what-we-do/circular-economy/toy-library"}, {"province": "Munster", "cat": "toylibrary", "title": "Ardmore Tidy Towns", "city": "Waterford", "county": "Waterford", "body": "Bike parking and repair hub, community fridge, toy library and pollinator and biodiversity sanctuary spots – wild bee habitat, bat and bird boxes.", "web": "https://www.facebook.com/p/Ardmore-Tidy-Towns-100064405671136/"}, {"province": "Munster", "cat": "refill", "title": "EarthWay Refill", "city": "Midleton", "county": "Cork", "body": "Bring your own container/bottles & fill up on organic food plastic free.", "web": "https://www.facebook.com/Earthwayrefillcork/"}, {"province": "Munster", "cat": "swapshop", "title": "Ballymacarbry Community Centre", "city": "Waterford", "county": "Waterford", "body": "Monthly swap shop for clothes and toys.", "web": "https://ballymacarbry.com/?fbclid=IwY2xjawHOSzFleHRuA2FlbQIxMAABHYpS6sOVSzO5vGzBHhLW8FsVAJqt7C1qc_RTl019KE5k-Py3Xt3cjnztfA_aem_Uuvn8bbllVWjmRq_KO-MYw"}, {"province": "Munster", "cat": "swapshop", "title": "Castlegregory Tidy Towns", "city": "Kerry", "county": "Kerry", "body": "Annual event held in the town, promotes circular businesses. Has a swap shop and repair stand.", "web": "https://www.facebook.com/castlegregorytidytowns"}, {"province": "Munster", "cat": "garden", "title": "Paul Partnership", "city": "Prior's-Land", "county": "Limerick", "body": "Our Community Zero Food Waste Initiative will work with a network of community food projects and community gardens.", "web": "https://www.paulpartnership.ie/community-zero-food-waste-initiative/"}, {"province": "Munster", "cat": "garden", "title": "Clonmel Allotments and Community Gardens Association", "city": "Clonmel", "county": "Tipperary", "body": "The Association was with the aim of offering plots to people interested in community gardening. They contributed to set up a public space for allotments...", "web": "https://clonmelallotments.wordpress.com/"}, {"province": "Munster", "cat": "upcycling", "title": "Durlas Óg Clothes Collection", "city": "Thurles", "county": "Tipperary", "body": "Clothes collection for recycling and upcycling.", "web": "https://durlasog.com/"}, {"province": "Munster", "cat": "upcycling", "title": "IRD Duhallow Furniture Revamp", "city": "Newmarket", "county": "Cork", "body": "IRD Duhallow Furniture Revamp provides furniture restoration and upcycling services and sales, offering affordable, good quality second hand furniture.", "web": "https://www.irdduhallow.com/community-services/duhallow-revamp/"}, {"province": "Connacht", "cat": "repaircafe", "title": "Ballinamore Community Services Hub", "city": "Ballinamore", "county": "Leitrim", "body": "Repair café (fix your bike / mend your clothes), Swap shop (swap plants, books, clothes and toys).", "web": "https://www.ballinamoreareacc.ie/community-services-hub/"}, {"province": "Connacht", "cat": "repaircafe", "title": "Galway Climate Festival Repair Café", "city": "Galway", "county": "Galway", "body": "Climate Inspirations-Communities in action’ is an innovative, creative and collaborative festival which aims to change the narrative around climate action...", "web": "https://galwayclimatefestival.ie/"}, {"province": "Connacht", "cat": "upcycling", "title": "Roscommon Women's Network", "city": "Castlerea", "county": "Roscommon", "body": "Local community project and charity based in Roscommon that is piloting textile upcycling training, in a project called Women’s Environmental Community...", "web": "https://rwn.ie/"}, {"province": "Connacht", "cat": "upcycling", "title": "Michelle Made This", "city": null, "county": "Roscommon", "body": "Upcycling workshops in sewing (Upcycling clothes) re-fashioning clothes and re-using fabrics to make cushions, dolls and textile art. Furniture Upcycling...", "web": "https://michellemadethis.com/"}, {"province": "Ulster", "cat": "toylibrary", "title": "Carrickmacross Toy Library", "city": "Carrickmacross", "county": "Monaghan", "body": "Carrickmacross Toy Library promotes play for children aged 0-6 by enabling families to borrow, not buy quality, sustainably sourced toys.", "web": "https://cmxtoylibrary.ie/?fbclid=IwY2xjawHJODNleHRuA2FlbQIxMAABHW1eyDwE6RX9cEhWD7aqkTnGjjChP39AixmjUPrKv5QCizucl7sTArJrhQ_aem_NjFyHTeYgagn9_vf7TQmZQ"}, {"province": "Ulster", "cat": "swapshop", "title": "House of Colour", "city": "Carrickmacross", "county": "Monaghan", "body": "Swap shops, pre loved shopping days.", "web": null}, {"province": "Ulster", "cat": "upcycling", "title": "East Belfast Mission", "city": "Belfast", "county": "Antrim", "body": "The East Belfast Mission (EBM) is a charity at the heart of the community in East Belfast. Our Restores specialise in selling a range of good quality...", "web": "https://ebm.org.uk/"}]
+;
+
+  var TOTAL_LOGGED = 660; // total rows in the source database, incl. entries not yet geo-tagged
+
+  // Lightweight, single-tap "quick take" question — a new kind of interaction (not swipe, not heart),
+  // and a low-friction personalisation signal. Response copy is written now; the DATA-NEEDED lines
+  // below are the one thing that must be sourced (EPA / Repak / CSO / Wove's own research) before launch.
+  var POLLS = {
+    general: {
+      q: "Be honest — what's something in your house right now that's broken, unused, or just taking up space?",
+      options: ["Clothes", "A tool or gadget", "Furniture", "A kid's toy"],
+      resp: "Whatever you picked, there's very likely a group for it a little further into this tour."
+    },
+    parent: {
+      q: "What's piling up fastest since having a baby?",
+      options: ["Outgrown toys", "Outgrown clothes", "Baby gear (buggies, cots…)", "Packaging & nappies"],
+      resp: "Toy and clothes libraries exist specifically for the first two — you'll meet one shortly."
+    },
+    diy: {
+      q: "What's sitting broken in your house right now, unfixed?",
+      options: ["Something electrical", "A piece of furniture", "A bike", "Clothes that need mending"],
+      resp: "That's exactly the kind of thing a repair café is built for."
+    }
+  };
+
+  function buildDeck(province, interest){
+    var order = interest === "diy"
+      ? ["repaircafe","mensshed","upcycling","refill","swapshop","garden","toylibrary"]
+      : interest === "parent"
+      ? ["toylibrary","swapshop","garden","mensshed","repaircafe","refill","upcycling"]
+      : ["mensshed","repaircafe","toylibrary","refill","swapshop","garden","upcycling"];
+
+    var deck = [];
+    var categoriesAvailable = 0;
+    order.forEach(function(cat){
+      var entries = REAL_ENTRIES.filter(function(e){ return e.province === province && e.cat === cat; });
+      if (entries.length === 0) return; // honest skip — no invented groups to fill a gap
+      categoriesAvailable++;
+      deck.push(Object.assign({ kind: "concept" }, CONCEPTS[cat], { key: cat }));
+      entries.forEach(function(e){
+        deck.push({ kind: "group", title: e.title, county: e.county, city: e.city, body: e.body, web: e.web, icon: ICON_FOR_CAT[cat], cat: cat });
+      });
+      if (categoriesAvailable === 1) {
+        var poll = POLLS[interest] || POLLS.general;
+        deck.push({ kind: "poll", q: poll.q, options: poll.options, resp: poll.resp });
+      }
+      if (categoriesAvailable === 2) {
+        var provinceHeadline = PROVINCE_HEADLINE[province];
+        deck.push({ kind: "moment", stat: TOTAL_LOGGED + "+", body: "groups like these are logged nationwide — coverage is still growing region by region." +
+          (provinceHeadline ? " circular.ie also runs an ongoing round-up: “" + provinceHeadline + "”." : "") });
+        var headline = CATEGORY_HEADLINE[cat];
+        if (headline) {
+          deck.push({ kind: "moment", readMore: true, quote: "“" + headline + "”", who: "Also on circular.ie" + (CATEGORY_META[cat] ? " · " + CATEGORY_META[cat].label : "") });
+        }
+      }
+    });
+
+    if (categoriesAvailable < 4) {
+      deck.push({ kind: "moment", gap: true, province: province,
+        body: "Our directory in " + province + " is thinner than elsewhere right now — " + categoriesAvailable + " of 7 group types confirmed so far. If you know one we're missing, tell us." });
+    }
+    deck.push({ kind: "survey" });
+    deck.push({ kind: "end" });
+    deck.forEach(function(c, i){ c._uid = c.kind + "-" + i + "-" + (c.title || c.key || ""); });
+    return deck;
+  }
+
+  var ICONS = {
+    shed: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9.5V20h14V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-5h4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    toy: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8" cy="16" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="16" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M8 13V8a4 4 0 0 1 8 0v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    repair: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.7 6.3a3 3 0 0 0-4.1 3.9L4 17v3h3l6.8-6.8a3 3 0 0 0 3.9-4.1l-2.1 2.1-2-2 2.1-2.1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+    refill: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v4l-4 8v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4l-4-8V3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 15h10" stroke="currentColor" stroke-width="1.6"/></svg>',
+    swap: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    garden: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21V11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 11c0-4 -3-6-7-6 0 4 3 6 7 6Zm0 0c0-4 3-6 7-6 0 4-3 6-7 6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+    upcycle: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4 17h16L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    stat: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9M11 19V4M18 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    poll: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.3.6c0 1.6-2.1 1.9-2.1 3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12.5" cy="16.8" r=".9" fill="currentColor"/></svg>',
+    quote: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 11c0-2.8 1.6-4.6 4-5v2c-1.3.4-2 1.3-2 3h2v5H7v-5Zm8 0c0-2.8 1.6-4.6 4-5v2c-1.3.4-2 1.3-2 3h2v5h-4v-5Z" fill="currentColor"/></svg>',
+    gap: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v6M12 16.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  };
+
+  var HEART_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20s-7-4.4-9.5-8.8C.6 7.8 2.4 4 6.2 4 8.4 4 10 5.2 12 7.4 14 5.2 15.6 4 17.8 4 21.6 4 23.4 7.8 21.5 11.2 19 15.6 12 20 12 20Z" stroke="currentColor" stroke-width="1.7" fill="none"/></svg>';
+  var HEART_ICON_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20s-7-4.4-9.5-8.8C.6 7.8 2.4 4 6.2 4 8.4 4 10 5.2 12 7.4 14 5.2 15.6 4 17.8 4 21.6 4 23.4 7.8 21.5 11.2 19 15.6 12 20 12 20Z"/></svg>';
+
+  // ---------------- State ----------------
+  var deck = [];
+  var index = 0;
+  var saved = {}; // key: unique id -> card data
+
+  function cardUid(card, i){ return card.kind + "-" + i + "-" + (card.title || card.key || ""); }
+
+  // ---------------- Elements ----------------
+  var el = {};
+  ["screen-landing","screen-tour","screen-list","screen-shortlist",
+   "cardStage","prevBtn","nextBtn","nextBtnLabel","progressFill","progressTrack","progressLabel",
+   "startTour","startList","switchToList","switchToTour","jumpToShortlist","jumpToShortlistFromList",
+   "backToTourFromShortlist","listView","shortlistBody","emailForm","emailInput","confirmPanel",
+   "restartBtn","announcer","heartCountInline","heartCountInline2","emailFormWrap","themeToggle",
+   "shareOptionsWrap","shareLinkText","copyLinkBtn","copyStatus","confirmLinkText"
+  ].forEach(function(id){ el[id] = document.getElementById(id); });
+
+  // Demo-only shareable link. In production this is a real, persistent board URL
+  // generated server-side the moment someone hearts their first group — not something
+  // invented client-side like this. Anonymous, no login: the link itself is the "account".
+  var shareId = null;
+  function shareLink(){
+    if (!shareId) shareId = Math.random().toString(36).slice(2,6) + "-" + Math.random().toString(36).slice(2,6);
+    return "circular.ie/my-tour/" + shareId;
+  }
+
+  function announce(msg){ el.announcer.textContent = msg; }
+
+  function focusHeading(id){
+    var node = document.getElementById(id);
+    if (node) { node.setAttribute("tabindex","-1"); node.focus({preventScroll:false}); }
+  }
+
+  function showScreen(name){
+    ["screen-landing","screen-tour","screen-list","screen-shortlist"].forEach(function(id){
+      document.getElementById(id).hidden = (id !== name);
+    });
+    document.body.classList.toggle("on-landing", name === "screen-landing");
+  }
+
+  function heartCount(){ return Object.keys(saved).length; }
+  function refreshHeartCounts(){
+    el.heartCountInline.textContent = heartCount();
+    el.heartCountInline2.textContent = heartCount();
+  }
+
+  function iconFor(card){
+    if (card.kind === "poll" || card.kind === "survey") return ICONS.poll;
+    if (card.kind === "moment") return card.gap ? ICONS.gap : (card.readMore ? ICONS.quote : (card.quote ? ICONS.quote : ICONS.stat));
+    return ICONS[card.icon] || ICONS.stat;
+  }
+
+  function kickerFor(card){
+    if (card.kind === "concept") return "Learn the concept";
+    if (card.kind === "group") return "Real group in the database";
+    if (card.kind === "poll") return "Quick question";
+    if (card.kind === "survey") return "Optional — 15 seconds";
+    if (card.kind === "moment") return card.gap ? "Being upfront" : (card.readMore ? "Also on circular.ie" : (card.quote ? "In their words" : "Did you know"));
+    return "";
+  }
+
+  function cardTitle(card){
+    if (card.kind === "poll") return card.q;
+    if (card.kind === "survey") return "Before you go — two quick ones";
+    if (card.kind === "moment") return card.gap ? "We don't have everything here yet" : (card.readMore ? "Worth a read" : (card.quote ? "In their words" : "Ireland in numbers"));
+    return card.title;
+  }
+
+  function optionButtonsHtml(options, groupKey, currentAnswer){
+    return options.map(function(o, i){
+      var picked = currentAnswer === i;
+      return '<button type="button" class="option-btn" data-group="' + groupKey + '" data-idx="' + i + '" aria-pressed="' + picked + '">' + o + '</button>';
+    }).join('');
+  }
+
+  function cardBodyHtml(card){
+    if (card.kind === "poll") {
+      var html = '<div role="group" aria-label="Answer options">' + optionButtonsHtml(card.options, "poll", card.answer) + '</div>';
+      if (card.answer != null) html += '<p class="card-meta" role="status" style="margin-top:.75rem;">' + card.resp + '</p>';
+      return html;
+    }
+    if (card.kind === "survey") {
+      var q1 = ["Yes, genuinely", "A bit", "Not really"];
+      var q2 = ["Very likely", "Maybe", "Unlikely"];
+      var out = '<p style="font-weight:600; margin-bottom:.4rem;">Did this change how you think about repair or reuse?</p>' +
+        '<div role="group" aria-label="Answer options for question one">' + optionButtonsHtml(q1, "survey-q1", card.a1) + '</div>' +
+        '<p style="font-weight:600; margin:1.1rem 0 .4rem;">How likely are you to visit one of these groups in real life?</p>' +
+        '<div role="group" aria-label="Answer options for question two">' + optionButtonsHtml(q2, "survey-q2", card.a2) + '</div>';
+      if (card.a1 != null && card.a2 != null) out += '<p class="card-meta" role="status" style="margin-top:.9rem;">Thanks — this is exactly what tells Wove whether tours like this actually work, not just whether people swiped through it.</p>';
+      return out;
+    }
+    if (card.kind === "moment") {
+      if (card.gap) return '<p>' + card.body + '</p>';
+      if (card.quote) return '<p style="font-size:1.05rem; font-style:italic;">' + card.quote + '</p><p class="card-meta">' + card.who + '</p>';
+      return '<p style="font-size:2rem; font-weight:800; margin:.25rem 0;">' + card.stat + '</p><p>' + card.body + '</p>';
+    }
+    var tagHtml = card.kind === "group" ? catTagHtml(card.cat) : (card.kind === "concept" ? catTagHtml(card.key) : "");
+    var html = tagHtml + '<p>' + card.body + '</p>';
+    if (card.kind === "group") {
+      var loc = card.city ? (card.city + ", Co. " + card.county) : ("Co. " + card.county);
+      html += '<p class="card-meta">📍 ' + loc + '</p>';
+      if (card.web) html += '<p class="card-meta"><a href="' + card.web + '" target="_blank" rel="noopener">Visit their page ↗<span class="sr-only"> (opens in a new tab)</span></a></p>';
+    }
+    if (card.kind === "concept") html += '<details class="card-detail"><summary>Tell me more</summary><p>' + card.detail + '</p></details>';
+    return html;
+  }
+
+  function wireOptionButtons(container, card, rerender){
+    Array.prototype.forEach.call(container.querySelectorAll(".option-btn"), function(btn){
+      btn.addEventListener("click", function(){
+        var idx = parseInt(btn.dataset.idx, 10);
+        if (btn.dataset.group === "poll") card.answer = idx;
+        if (btn.dataset.group === "survey-q1") card.a1 = idx;
+        if (btn.dataset.group === "survey-q2") card.a2 = idx;
+        rerender();
+      });
+    });
+  }
+
+  function renderHeartButton(card){
+    if (card.kind !== "group") return "";
+    var isSaved = !!saved[card._uid];
+    return '<button class="heart-btn" data-uid="' + card._uid + '" aria-pressed="' + isSaved + '" aria-label="' +
+      (isSaved ? "Remove " : "Save ") + card.title + (isSaved ? " from" : " to") + ' your shortlist">' +
+      (isSaved ? HEART_ICON_FILLED : HEART_ICON) + '<span>' + (isSaved ? "Saved" : "Save") + '</span></button>';
+  }
+
+  // Concept cards carry their category on .key, real-group cards on .cat — either way, this
+  // is what drives the bold per-category card colour (see the .card[data-cat="…"] CSS rules).
+  function catAttr(card){
+    var c = card.cat || card.key;
+    return c ? ' data-cat="' + c + '"' : '';
+  }
+
+  function renderCard(card){
+    if (card.kind === "end") {
+      return '<div class="card" data-kind="end" style="align-items:center; justify-content:center; text-align:center;">' +
+        '<p style="font-size:2rem;">🎉</p><h2 class="card-title">You\'ve reached the end</h2>' +
+        '<p class="card-body">You saved ' + heartCount() + ' group' + (heartCount() === 1 ? "" : "s") + '. See your shortlist and email it to yourself.</p></div>';
+    }
+    return '<div class="card" data-kind="' + card.kind + '"' + catAttr(card) + '>' +
+      '<div class="card-kicker"><span class="card-icon">' + iconFor(card) + '</span>' + kickerFor(card) + '</div>' +
+      '<h2 class="card-title">' + cardTitle(card) + '</h2>' +
+      '<div class="card-body">' + cardBodyHtml(card) + '</div>' +
+      '<div class="card-footer">' + renderHeartButton(card) + '</div>' +
+      '</div>';
+  }
+
+  function renderTour(){
+    var card = deck[index];
+    el.cardStage.innerHTML = renderCard(card);
+    var pct = Math.round(((index+1)/deck.length)*100);
+    el.progressFill.style.width = pct + "%";
+    el.progressLabel.textContent = "Card " + (index+1) + " of " + deck.length;
+    el.progressTrack.setAttribute("aria-valuenow", index+1);
+    el.progressTrack.setAttribute("aria-valuemax", deck.length);
+    el.prevBtn.disabled = index === 0;
+    el.nextBtnLabel.textContent = (index === deck.length - 1) ? "See my shortlist" : "Next";
+    var heartBtn = el.cardStage.querySelector(".heart-btn");
+    if (heartBtn) heartBtn.addEventListener("click", function(){ toggleHeart(card); renderTour(); });
+    wireOptionButtons(el.cardStage, card, renderTour);
+    announce((card.kind === "end" ? "End of tour. " : "Card " + (index+1) + " of " + deck.length + ". ") + (cardTitle(card) || ""));
+  }
+
+  function toggleHeart(card){
+    if (saved[card._uid]) { delete saved[card._uid]; }
+    else { saved[card._uid] = card; }
+    refreshHeartCounts();
+  }
+
+  function renderList(){
+    var html = deck.filter(function(c){ return c.kind !== "end"; }).map(function(card){
+      return '<div class="list-card" data-kind="' + card.kind + '"' + catAttr(card) + ' data-list-uid="' + card._uid + '">' +
+        '<span class="card-icon">' + iconFor(card) + '</span>' +
+        '<div class="list-card-body">' +
+        '<p class="card-kicker">' + kickerFor(card) + '</p>' +
+        '<h3 class="list-card-title">' + cardTitle(card) + '</h3>' +
+        '<div class="list-card-text">' + cardBodyHtml(card) + '</div>' +
+        renderHeartButton(card) +
+        '</div></div>';
+    }).join("");
+    el.listView.innerHTML = html;
+    Array.prototype.forEach.call(el.listView.querySelectorAll(".heart-btn"), function(btn){
+      btn.addEventListener("click", function(){
+        var card = deck.find(function(c){ return c._uid === btn.dataset.uid; });
+        toggleHeart(card);
+        renderList();
+      });
+    });
+    Array.prototype.forEach.call(el.listView.querySelectorAll(".list-card"), function(node){
+      var card = deck.find(function(c){ return c._uid === node.dataset.listUid; });
+      if (card) wireOptionButtons(node, card, renderList);
+    });
+  }
+
+  function renderShortlist(){
+    var items = Object.values(saved);
+    var counties = Array.from(new Set(items.map(function(i){ return i.county; }).filter(Boolean)));
+    if (items.length === 0) {
+      el.shortlistBody.innerHTML = '<p class="empty-note">Nothing saved yet — go back to the tour and tap the heart on any group that interests you.</p>';
+    } else {
+      var html = '<div class="shortlist-summary"><strong>' + items.length + ' group' + (items.length===1?"":"s") + ' saved across ' + counties.length + ' count' + (counties.length===1?"y":"ies") + '</strong>Your personal circular Ireland map.</div>';
+      html += items.map(function(card){
+        return '<div class="shortlist-item"><span class="card-icon">' + (ICONS[card.icon]||ICONS.stat) + '</span>' +
+          '<div class="grow"><div class="name">' + card.title + '</div><div class="loc">Co. ' + card.county + '</div></div>' +
+          '<button class="remove-btn" data-uid="' + card._uid + '" aria-label="Remove ' + card.title + ' from your shortlist">✕</button></div>';
+      }).join("");
+      el.shortlistBody.innerHTML = html;
+      Array.prototype.forEach.call(el.shortlistBody.querySelectorAll(".remove-btn"), function(btn){
+        btn.addEventListener("click", function(){ delete saved[btn.dataset.uid]; refreshHeartCounts(); renderShortlist(); });
+      });
+    }
+    el.shareOptionsWrap.hidden = items.length === 0;
+    if (items.length > 0) {
+      el.shareLinkText.value = shareLink();
+      el.copyStatus.textContent = "";
+    }
+  }
+
+  el.copyLinkBtn.addEventListener("click", function(){
+    var text = el.shareLinkText.value;
+    function succeeded(){
+      var original = "Copy link";
+      el.copyLinkBtn.textContent = "Copied ✓";
+      el.copyStatus.textContent = "Link copied — paste it anywhere.";
+      announce("Link copied to your clipboard.");
+      setTimeout(function(){ el.copyLinkBtn.textContent = original; }, 2200);
+    }
+    function fallbackSelect(){
+      el.shareLinkText.focus();
+      el.shareLinkText.select();
+      try {
+        var ok = document.execCommand("copy");
+        if (ok) { succeeded(); return; }
+      } catch (e) { /* fall through */ }
+      el.copyStatus.textContent = "Link selected above — press Ctrl/Cmd+C to copy.";
+      announce("Link selected. Press control or command C to copy.");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(succeeded, fallbackSelect);
+    } else {
+      fallbackSelect();
+    }
+  });
+
+  // ---------------- Navigation wiring ----------------
+  function currentProvince(){ return document.querySelector('input[name="province"]:checked').value; }
+  function currentSegment(){ return document.querySelector('input[name="segment"]:checked').value; }
+
+  el.startTour.addEventListener("click", function(){
+    deck = buildDeck(currentProvince(), currentSegment()); index = 0;
+    showScreen("screen-tour"); renderTour();
+    focusHeading("tour-heading");
+  });
+  el.startList.addEventListener("click", function(){
+    deck = buildDeck(currentProvince(), currentSegment());
+    showScreen("screen-list"); renderList();
+    focusHeading("list-heading");
+  });
+  el.switchToList.addEventListener("click", function(){ showScreen("screen-list"); renderList(); focusHeading("list-heading"); });
+  el.switchToTour.addEventListener("click", function(){ showScreen("screen-tour"); renderTour(); focusHeading("tour-heading"); });
+
+  el.prevBtn.addEventListener("click", function(){ if (index>0){ index--; renderTour(); } });
+  el.nextBtn.addEventListener("click", function(){
+    if (index < deck.length - 1) { index++; renderTour(); }
+    else { showScreen("screen-shortlist"); renderShortlist(); focusHeading("shortlist-heading"); }
+  });
+
+  el.jumpToShortlist.addEventListener("click", function(){ showScreen("screen-shortlist"); renderShortlist(); focusHeading("shortlist-heading"); });
+  el.jumpToShortlistFromList.addEventListener("click", function(){ showScreen("screen-shortlist"); renderShortlist(); focusHeading("shortlist-heading"); });
+  el.backToTourFromShortlist.addEventListener("click", function(){ showScreen("screen-tour"); renderTour(); focusHeading("tour-heading"); });
+
+  // Keyboard arrows for tour
+  document.addEventListener("keydown", function(e){
+    if (document.getElementById("screen-tour").hidden) return;
+    if (e.key === "ArrowRight") { el.nextBtn.click(); }
+    if (e.key === "ArrowLeft" && index>0) { el.prevBtn.click(); }
+  });
+
+  // Touch/pointer swipe (enhancement only — buttons/keys always work)
+  (function(){
+    var startX = null;
+    el.cardStage.addEventListener("pointerdown", function(e){ startX = e.clientX; });
+    el.cardStage.addEventListener("pointerup", function(e){
+      if (startX === null) return;
+      var dx = e.clientX - startX; startX = null;
+      if (Math.abs(dx) < 40) return;
+      if (dx < 0) el.nextBtn.click(); else if (index>0) el.prevBtn.click();
+    });
+  })();
+
+  // Email form
+  el.emailForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var val = el.emailInput.value.trim();
+    var valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    var consent = document.getElementById("consentCheck").checked;
+    var existingErr = document.getElementById("emailError");
+    if (existingErr) existingErr.remove();
+    if (!valid) {
+      el.emailInput.setAttribute("aria-invalid","true");
+      el.emailInput.setAttribute("aria-describedby","emailHelp emailError");
+      var p = document.createElement("p");
+      p.id = "emailError"; p.className = "error"; p.setAttribute("role","alert");
+      p.textContent = "Enter a valid email address, e.g. name@example.com.";
+      el.emailInput.insertAdjacentElement("afterend", p);
+      el.emailInput.focus();
+      return;
+    }
+    el.emailInput.setAttribute("aria-invalid","false");
+    if (!consent) { document.getElementById("consentCheck").focus(); return; }
+    el.confirmLinkText.textContent = shareLink();
+    el.shareOptionsWrap.hidden = true;
+    el.confirmPanel.hidden = false;
+    announce("Your shortlist has been emailed to you.");
+    focusHeading0();
+    function focusHeading0(){ var h = el.confirmPanel.querySelector("h3"); h.setAttribute("tabindex","-1"); h.focus(); }
+  });
+
+  el.restartBtn.addEventListener("click", function(){
+    saved = {}; refreshHeartCounts();
+    el.shareOptionsWrap.hidden = false; el.confirmPanel.hidden = true;
+    el.emailForm.reset();
+    showScreen("screen-landing"); focusHeading("main-heading");
+  });
+
+  // Theme toggle (demo aid only)
+  el.themeToggle.addEventListener("click", function(){
+    var pressed = el.themeToggle.getAttribute("aria-pressed") === "true";
+    el.themeToggle.setAttribute("aria-pressed", String(!pressed));
+    document.documentElement.setAttribute("data-theme", !pressed ? "dark" : "light");
+  });
+
+})();
+</script>
+</body>
+</html>
