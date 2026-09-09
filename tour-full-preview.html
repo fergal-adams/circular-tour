@@ -583,12 +583,19 @@
   // resizing left every fixed-px child (nav, cards, text) misaligned against whatever odd ratio
   // the device/browser-chrome combo produced. Scaling keeps every child's relative position
   // exactly as designed, just painted smaller.
+  // scaleX/scaleY independently (not a single uniform scale) — a uniform scale preserves exact
+  // proportions but leaves black letterbox bars on any device whose real aspect ratio isn't
+  // exactly 393:852 (confirmed on a real phone: visible bars down both sides). Stretching each
+  // axis to fill the screen removes the bars entirely; the cost is a barely-perceptible
+  // non-uniform stretch (circles very slightly elliptical) rather than an obviously-wrong black
+  // margin — the better trade-off for a real device.
   const phoneEl = document.querySelector('.phone');
   const mobileMq = matchMedia('(max-width: 480px)');
   function fitPhone() {
     if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
-    const scale = Math.min(window.innerWidth / 393, window.innerHeight / 852);
-    phoneEl.style.transform = `scale(${scale})`;
+    const scaleX = window.innerWidth / 393;
+    const scaleY = window.innerHeight / 852;
+    phoneEl.style.transform = `scale(${scaleX}, ${scaleY})`;
   }
   window.addEventListener('resize', fitPhone);
   window.addEventListener('orientationchange', fitPhone);
