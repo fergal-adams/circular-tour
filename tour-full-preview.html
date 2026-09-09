@@ -100,11 +100,31 @@
      14/15/16 Pro's CSS viewport exactly, per the Figma frames this was built from), not an
      arbitrary breakpoint. */
   @media (max-width: 480px) {
-    body { padding: 0; gap: 0; min-height: 100dvh; background: #000; }
+    /* Everything inside .phone is positioned with fixed px assuming an exact 393x852 canvas
+       (e.g. `top: 491px`). Stretching .phone itself to 100vw/100dvh — the first attempt at this
+       fix — left the canvas at whatever odd ratio the real device/browser-chrome combination
+       produced, so those fixed positions landed in the wrong place (nav overlapping card text,
+       cards cut off). Real device testing (Fergal) caught this; a viewport emulator hadn't.
+       Fix: keep .phone at its true 393x852 size always, so nothing inside it ever misaligns,
+       and visually scale the whole thing with a transform (which scales children too, unlike
+       resizing width/height) via the tiny script below. overflow:hidden on body clips the
+       unscaled layout footprint without affecting the scaled-down painted result. */
+    body { padding: 0; gap: 0; height: 100dvh; overflow: hidden; background: #000; }
     .frame-label { display: none; }
     .phone {
-      width: 100vw; height: 100dvh; max-width: none; aspect-ratio: auto;
-      border-radius: 0; box-shadow: none;
+      /* max-width:100% from the base rule (desktop shrink-to-fit) was still active here,
+         silently shrinking .phone's pre-transform box before the scale transform even ran —
+         every fixed-px child inside was then positioned relative to that already-wrong-shaped
+         box. Must force the TRUE 393x852 size back before scaling it. */
+      width: 393px; height: 852px; max-width: none; aspect-ratio: auto;
+      /* body is display:flex;flex-direction:column — flex items shrink below their declared
+         size by default (flex-shrink:1) whenever the container's main axis (height, in a
+         column) has less room than requested. Body is only 100dvh tall in mobile mode, so
+         flexbox was silently squashing .phone's height back down to fit BEFORE the transform
+         even ran — nothing to do with max-width/aspect-ratio at all, a separate mechanism
+         producing the same symptom. flex-shrink:0 stops it. */
+      flex-shrink: 0;
+      border-radius: 0; box-shadow: none; transform-origin: center center;
     }
   }
 
@@ -179,8 +199,14 @@
     font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: #000; white-space: nowrap;
   }
   .lc-outline-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+  /* top was 491px. Measured an apparent ~7px overlap with the nav on a 2-line headline
+     (Kilmuckridge) while chasing the mobile scaling bug below — turned out to be a symptom of
+     that same bug (the .phone box was still wrongly flex-shrunk at measurement time, so every
+     position read back wrong), not a real spacing issue: with the box correctly sized, top:491
+     already clears the nav by 40px+ on every card. Left at 470px anyway since the extra
+     headroom is harmless, not because 491 was actually broken. */
   .lc-content {
-    position: absolute; left: 50%; top: 491px; transform: translateX(-50%); width: 271px; z-index: 2;
+    position: absolute; left: 50%; top: 470px; transform: translateX(-50%); width: 271px; z-index: 2;
     display: flex; flex-direction: column; align-items: center; gap: 32px; text-align: center;
   }
   .lc-headline { font-size: 36px; line-height: 40px; font-weight: 600; margin: 0; }
@@ -330,7 +356,7 @@
     <div class="lc-center" style="background:#FFD300">
       <p class="lc-center-title">Leinster's best toy libraries</p>
     </div>
-    <div class="lc-content" style="top:491px">
+    <div class="lc-content">
       <p class="lc-sub">Explanatory copy goes here!</p>
       <button class="lc-outline-btn" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
@@ -552,6 +578,21 @@
   const bgColorsByIndex = [null, '#ABC3FF', '#FFD300', '#FFA06A', '#E7C168', null, null, null, null];
   const CONTENT_INDEX = 6;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Mobile: scale the whole 393x852 canvas to fit the real screen, rather than resizing it —
+  // resizing left every fixed-px child (nav, cards, text) misaligned against whatever odd ratio
+  // the device/browser-chrome combo produced. Scaling keeps every child's relative position
+  // exactly as designed, just painted smaller.
+  const phoneEl = document.querySelector('.phone');
+  const mobileMq = matchMedia('(max-width: 480px)');
+  function fitPhone() {
+    if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
+    const scale = Math.min(window.innerWidth / 393, window.innerHeight / 852);
+    phoneEl.style.transform = `scale(${scale})`;
+  }
+  window.addEventListener('resize', fitPhone);
+  window.addEventListener('orientationchange', fitPhone);
+  fitPhone();
 
   const LEFT_ANCHOR = { x: -138 + 295.47 / 2, y: 131 + 295.47 / 2 };
   const RIGHT_ANCHOR = { x: 237 + 295.47 / 2, y: 131 + 295.47 / 2 };
