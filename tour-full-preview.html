@@ -92,6 +92,22 @@
     color: #000;
   }
 
+  /* On an actual phone this should BE the app, not a desktop preview card showing a mockup of
+     one — drop the centering/shadow/instructional-text chrome and go fullscreen. 100dvh (not
+     100vh) so mobile Safari's collapsing address bar doesn't cut off or jump the layout — vh
+     is sized for the browser chrome hidden, dvh tracks the actual visible viewport. Threshold
+     is deliberately just above this design's own 393px reference width (matches an iPhone
+     14/15/16 Pro's CSS viewport exactly, per the Figma frames this was built from), not an
+     arbitrary breakpoint. */
+  @media (max-width: 480px) {
+    body { padding: 0; gap: 0; min-height: 100dvh; background: #000; }
+    .frame-label { display: none; }
+    .phone {
+      width: 100vw; height: 100dvh; max-width: none; aspect-ratio: auto;
+      border-radius: 0; box-shadow: none;
+    }
+  }
+
   .tour-progress { position: absolute; top: 16px; left: 24px; right: 24px; z-index: 30; display: flex; gap: 6px; }
   .tour-progress__seg { flex: 1; height: 4px; border-radius: 999px; background: rgba(0,0,0,.22); transition: background-color .3s ease; }
   .tour-progress__seg.is-filled { background: #000; }
