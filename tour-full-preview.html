@@ -109,6 +109,9 @@
        and visually scale the whole thing with a transform (which scales children too, unlike
        resizing width/height) via the tiny script below. overflow:hidden on body clips the
        unscaled layout footprint without affecting the scaled-down painted result. */
+    /* background is set dynamically by paintLetterbox() in JS, matched to the active screen's
+       own bg colour, so any letterbox gap around the scaled .phone blends in instead of showing
+       as a stray black bar. #000 here is just the pre-JS fallback for the first paint. */
     body { padding: 0; gap: 0; height: 100dvh; overflow: hidden; background: #000; }
     .frame-label { display: none; }
     .phone {
@@ -583,22 +586,35 @@
   // resizing left every fixed-px child (nav, cards, text) misaligned against whatever odd ratio
   // the device/browser-chrome combo produced. Scaling keeps every child's relative position
   // exactly as designed, just painted smaller.
-  // scaleX/scaleY independently (not a single uniform scale) — a uniform scale preserves exact
-  // proportions but leaves black letterbox bars on any device whose real aspect ratio isn't
-  // exactly 393:852 (confirmed on a real phone: visible bars down both sides). Stretching each
-  // axis to fill the screen removes the bars entirely; the cost is a barely-perceptible
-  // non-uniform stretch (circles very slightly elliptical) rather than an obviously-wrong black
-  // margin — the better trade-off for a real device.
+  // Uniform scale only (Math.min, not independent scaleX/scaleY) — an earlier version stretched
+  // each axis to fill the screen exactly, which removed the black letterbox bars but visibly
+  // distorted the design's circles into ellipses on a real device (confirmed via screenshot —
+  // the distortion was NOT the "barely perceptible" effect it was assumed to be). Uniform scale
+  // preserves every shape exactly and accepts a letterbox gap instead; that gap is then painted
+  // to match the active screen's own background (see paintLetterbox below) so it blends in
+  // rather than reading as a stray black bar.
+  // window.visualViewport, when available, tracks Safari's actual visible area after its
+  // address bar/toolbar chrome — window.innerHeight can lag briefly behind that on load.
   const phoneEl = document.querySelector('.phone');
   const mobileMq = matchMedia('(max-width: 480px)');
+  function viewportSize() {
+    const vv = window.visualViewport;
+    return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight };
+  }
   function fitPhone() {
     if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
-    const scaleX = window.innerWidth / 393;
-    const scaleY = window.innerHeight / 852;
-    phoneEl.style.transform = `scale(${scaleX}, ${scaleY})`;
+    const { w, h } = viewportSize();
+    const scale = Math.min(w / 393, h / 852);
+    phoneEl.style.transform = `scale(${scale})`;
+  }
+  function paintLetterbox() {
+    if (!mobileMq.matches) return;
+    const activeScreen = document.querySelector('.tour-screen.is-active');
+    if (activeScreen) document.body.style.background = activeScreen.style.background;
   }
   window.addEventListener('resize', fitPhone);
   window.addEventListener('orientationchange', fitPhone);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitPhone);
   fitPhone();
 
   const LEFT_ANCHOR = { x: -138 + 295.47 / 2, y: 131 + 295.47 / 2 };
@@ -619,6 +635,7 @@
     segs.forEach((seg, i) => seg.classList.toggle('is-filled', i <= current));
     status.textContent = `Screen ${current + 1} of ${screens.length}: ${titles[current]}`;
     renderShortlist();
+    paintLetterbox();
   }
 
   function moveFocus() {
