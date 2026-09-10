@@ -85,12 +85,24 @@
   .frame-label { color: #444; font-size: .85rem; text-align: center; max-width: 393px; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 
-  .phone {
+  /* .phone-frame is the outer, unscaled "device" box — on desktop the 393x852 mockup card; on
+     mobile the real fullscreen viewport. .phone-canvas is the actual 393x852 design canvas,
+     scaled to fit .phone-frame via JS transform. .tour-progress/.tour-nav are direct children
+     of .phone-frame, NOT .phone-canvas — this split exists because a single scaled canvas
+     couldn't satisfy two conflicting needs at once: covering the real screen edge-to-edge
+     (needs to scale up past a plain "contain" fit) while never risking a crop into the shared
+     chrome (needs to stay unscaled). Splitting them means .phone-canvas can cover freely — no
+     capping/crop-risk math needed at all — while nav/progress sit at fixed real-device px from
+     .phone-frame's own edges, immune to whatever the canvas is doing. See fitPhone() below for
+     the history of why a single scaled element didn't work (letterbox bars, then ellipse
+     distortion, then a capped partial-crop compromise — this replaces all of that). */
+  .phone-frame {
     width: 393px; height: 852px; max-width: 100%; aspect-ratio: 393 / 852;
     border-radius: 24px; position: relative; overflow: hidden;
     box-shadow: 0 10px 40px rgba(0,0,0,.18);
     color: #000;
   }
+  .phone-canvas { position: absolute; top: 0; left: 0; width: 393px; height: 852px; overflow: hidden; }
 
   /* On an actual phone this should BE the app, not a desktop preview card showing a mockup of
      one — drop the centering/shadow/instructional-text chrome and go fullscreen. 100dvh (not
@@ -100,18 +112,9 @@
      14/15/16 Pro's CSS viewport exactly, per the Figma frames this was built from), not an
      arbitrary breakpoint. */
   @media (max-width: 480px) {
-    /* Everything inside .phone is positioned with fixed px assuming an exact 393x852 canvas
-       (e.g. `top: 491px`). Stretching .phone itself to 100vw/100dvh — the first attempt at this
-       fix — left the canvas at whatever odd ratio the real device/browser-chrome combination
-       produced, so those fixed positions landed in the wrong place (nav overlapping card text,
-       cards cut off). Real device testing (Fergal) caught this; a viewport emulator hadn't.
-       Fix: keep .phone at its true 393x852 size always, so nothing inside it ever misaligns,
-       and visually scale the whole thing with a transform (which scales children too, unlike
-       resizing width/height) via the tiny script below. overflow:hidden on body clips the
-       unscaled layout footprint without affecting the scaled-down painted result. */
     /* background is set dynamically by paintLetterbox() in JS, matched to the active screen's
-       own bg colour, so any letterbox gap around the scaled .phone blends in instead of showing
-       as a stray black bar. #000 here is just the pre-JS fallback for the first paint. */
+       own bg colour — now mostly a defensive fallback for a sub-pixel rounding sliver, since
+       .phone-canvas is cover-scaled to fully fill .phone-frame with no deliberate gap left. */
     /* padding-bottom reserves space for iOS Safari's floating bottom toolbar. Since iOS 15
        Safari's compact toolbar is a translucent OVERLAY drawn on top of page content, not
        something 100dvh excludes — real-device testing showed the Next button rendering
@@ -119,24 +122,28 @@
        env(safe-area-inset-bottom) is Apple's documented way to reserve exactly the space that
        bar covers (it dynamically grows when the bar is showing); requires viewport-fit=cover
        on the meta viewport tag to report a non-zero value at all. fitPhone()'s viewportSize()
-       subtracts the same value so .phone is scaled to fit inside the remaining safe space. */
+       subtracts the same value so .phone-frame (and the nav sitting on it) stays clear of it. */
     body { padding: 0; padding-bottom: env(safe-area-inset-bottom, 0px); gap: 0; height: 100dvh; overflow: hidden; background: #000; }
     .frame-label { display: none; }
-    .phone {
-      /* max-width:100% from the base rule (desktop shrink-to-fit) was still active here,
-         silently shrinking .phone's pre-transform box before the scale transform even ran —
-         every fixed-px child inside was then positioned relative to that already-wrong-shaped
-         box. Must force the TRUE 393x852 size back before scaling it. */
-      width: 393px; height: 852px; max-width: none; aspect-ratio: auto;
+    .phone-frame {
+      /* Unlike the old single-element version, the frame now WANTS to be the real screen size
+         (100%/100%, not 393x852) — it's just the crop boundary; .phone-canvas underneath is
+         still the fixed 393x852 design canvas, scaled up by JS to cover this box. max-width:none
+         overrides the desktop shrink-to-fit rule, which would otherwise still apply here. */
+      width: 100%; height: 100%; max-width: none; aspect-ratio: auto;
       /* body is display:flex;flex-direction:column — flex items shrink below their declared
          size by default (flex-shrink:1) whenever the container's main axis (height, in a
          column) has less room than requested. Body is only 100dvh tall in mobile mode, so
-         flexbox was silently squashing .phone's height back down to fit BEFORE the transform
-         even ran — nothing to do with max-width/aspect-ratio at all, a separate mechanism
-         producing the same symptom. flex-shrink:0 stops it. */
+         flexbox was silently squashing the frame's height back down to fit — nothing to do
+         with max-width/aspect-ratio at all, a separate mechanism producing the same symptom.
+         flex-shrink:0 stops it. */
       flex-shrink: 0;
-      border-radius: 0; box-shadow: none; transform-origin: center center;
+      border-radius: 0; box-shadow: none;
     }
+    /* top/left 50% + translate(-50%,-50%) in fitPhone()'s transform centers the canvas within
+       .phone-frame regardless of how .phone-frame's own real size compares to 393x852 — doesn't
+       depend on flex centering the way the old single-element version did. */
+    .phone-canvas { top: 50%; left: 50%; transform-origin: center center; }
   }
 
   .tour-progress { position: absolute; top: 16px; left: 24px; right: 24px; z-index: 30; display: flex; gap: 6px; }
@@ -297,22 +304,10 @@
 </head>
 <body>
 
-<div id="safe-bottom-probe" aria-hidden="true" style="position:fixed; bottom:0; left:0; width:0; height:0; padding-bottom:env(safe-area-inset-bottom, 0px); visibility:hidden; pointer-events:none;"></div>
-
 <p class="frame-label">Full tour preview — toy library → listicle (title + 3 cards) → did you know → article stack → survey. Slide between templates, colour-reveal within the listicle. On the article stack, Next/Back drive the local stack until it's empty, then fall through. Use Next/Back, or ← → arrow keys.</p>
 
-<div class="phone">
-  <div class="tour-progress" aria-hidden="true">
-    <span class="tour-progress__seg" data-seg="0"></span>
-    <span class="tour-progress__seg" data-seg="1"></span>
-    <span class="tour-progress__seg" data-seg="2"></span>
-    <span class="tour-progress__seg" data-seg="3"></span>
-    <span class="tour-progress__seg" data-seg="4"></span>
-    <span class="tour-progress__seg" data-seg="5"></span>
-    <span class="tour-progress__seg" data-seg="6"></span>
-    <span class="tour-progress__seg" data-seg="7"></span>
-    <span class="tour-progress__seg" data-seg="8"></span>
-  </div>
+<div class="phone-frame">
+<div class="phone-canvas">
   <p id="tour-status" class="sr-only" aria-live="polite"></p>
   <div class="lc-reveal" id="lc-reveal" aria-hidden="true"></div>
 
@@ -564,16 +559,28 @@
     <p class="sl-empty" id="sl-empty">Nothing saved yet — go back and tap "Save this" on anything worth keeping.</p>
     <p class="sl-hint">Tip: screenshot this to share it with your community.</p>
   </section>
+</div>
 
-  <div class="tour-nav">
-    <button class="tour-back" type="button" aria-label="Go back">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-    </button>
-    <button class="tour-next" type="button">
-      Next
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-    </button>
-  </div>
+<div class="tour-progress" aria-hidden="true">
+  <span class="tour-progress__seg" data-seg="0"></span>
+  <span class="tour-progress__seg" data-seg="1"></span>
+  <span class="tour-progress__seg" data-seg="2"></span>
+  <span class="tour-progress__seg" data-seg="3"></span>
+  <span class="tour-progress__seg" data-seg="4"></span>
+  <span class="tour-progress__seg" data-seg="5"></span>
+  <span class="tour-progress__seg" data-seg="6"></span>
+  <span class="tour-progress__seg" data-seg="7"></span>
+  <span class="tour-progress__seg" data-seg="8"></span>
+</div>
+<div class="tour-nav">
+  <button class="tour-back" type="button" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+  </button>
+  <button class="tour-next" type="button">
+    Next
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+  </button>
+</div>
 </div>
 
 <script>
@@ -592,60 +599,32 @@
   const CONTENT_INDEX = 6;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Mobile: scale the whole 393x852 canvas to fit the real screen, rather than resizing it —
-  // resizing left every fixed-px child (nav, cards, text) misaligned against whatever odd ratio
-  // the device/browser-chrome combo produced. Scaling keeps every child's relative position
-  // exactly as designed, just painted smaller.
-  // Uniform scale only (one scale factor, not independent scaleX/scaleY) — an earlier version
-  // stretched each axis to fill the screen exactly, which removed the letterbox bars but visibly
-  // distorted the design's circles into ellipses on a real device (confirmed via screenshot —
-  // the distortion was NOT the "barely perceptible" effect it was assumed to be).
-  // Plain "contain" (Math.min) left a visible side gap on a real device where the safe-area
-  // reservation above makes height the binding axis — illustrations meant to bleed off the
-  // canvas edge were stopping short of the real screen edge instead. Straight "cover" (Math.max)
-  // isn't safe here though: the actual gap runs ~10-15% of the canvas, but the shared chrome has
-  // nowhere near that much margin to give up — .tour-progress sits just 16px from the canvas top
-  // and .tour-nav only 40px from the bottom (see their rules below); covering fully would crop
-  // into one of them, reintroducing a worse version of the bug the safe-area fix above just
-  // solved. Fergal's call: crop a little, capped at the true safe margin — scale up toward
-  // covering the viewport, but never past the point where the resulting top/bottom crop (split
-  // evenly by the centering below) would exceed SAFE_TOP_MARGIN. SAFE_TOP_MARGIN (not the
-  // larger bottom one) is the binding constraint since it's the smaller of the two.
-  // window.visualViewport, when available, tracks Safari's actual visible area after its
-  // address bar/toolbar chrome — window.innerHeight can lag briefly behind that on load.
-  const phoneEl = document.querySelector('.phone');
+  // Mobile: .phone-frame is the real, unscaled screen box; .phone-canvas is the fixed 393x852
+  // design canvas, scaled to fully COVER .phone-frame (Math.max, not Math.min/"contain") so
+  // content reaches every edge with no letterbox gap. This used to be a much harder tradeoff
+  // when nav/progress lived INSIDE the scaled element: covering fully risked cropping into them
+  // (.tour-progress sits just 16px from the canvas top, .tour-nav only 40px from the bottom),
+  // which forced an earlier version of this function to cap the scale short of full coverage,
+  // leaving a partial gap. Splitting them into separate DOM elements (see the .phone-frame /
+  // .phone-canvas comment near their CSS rules) removed that risk entirely — nav/progress are
+  // no longer descendants of the scaled canvas, so they can't be cropped by it no matter how
+  // much .phone-canvas covers. Also tried independent scaleX/scaleY to close a gap once before
+  // this — rejected, since it visibly distorted circles into ellipses on a real device.
+  // Measuring .phone-frame's own getBoundingClientRect(), rather than window.innerWidth/Height
+  // or visualViewport, means the scale calc automatically matches whatever CSS actually laid
+  // out (100dvh, the safe-area-inset-bottom padding below) without re-deriving it in JS.
+  const phoneFrame = document.querySelector('.phone-frame');
+  const canvasEl = document.querySelector('.phone-canvas');
   const mobileMq = matchMedia('(max-width: 480px)');
-  const safeBottomProbe = document.getElementById('safe-bottom-probe');
-  const SAFE_TOP_MARGIN = 16; // .tour-progress's `top` — the tighter of the two chrome margins
-  function getSafeBottom() {
-    return parseFloat(getComputedStyle(safeBottomProbe).paddingBottom) || 0;
-  }
-  function viewportSize() {
-    const vv = window.visualViewport;
-    const w = vv ? vv.width : window.innerWidth;
-    const h = (vv ? vv.height : window.innerHeight) - getSafeBottom();
-    return { w, h };
-  }
   function fitPhone() {
-    if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
-    const { w, h } = viewportSize();
-    const heightBoundScale = h / 852; // scale so the canvas height exactly fills available height
-    const widthBoundScale = w / 393;  // scale so the canvas width exactly fills available width
-    let scale;
-    if (widthBoundScale > heightBoundScale) {
-      // Height is the tighter axis — heightBoundScale alone leaves a width gap. Scale up toward
-      // covering the width, capped so the resulting top/bottom crop (split evenly by the
-      // centering below) never exceeds SAFE_TOP_MARGIN:
-      //   (852*scale - h)/2 <= SAFE_TOP_MARGIN*scale  =>  scale <= h / (852 - 2*SAFE_TOP_MARGIN)
-      const maxSafeScale = h / (852 - 2 * SAFE_TOP_MARGIN);
-      scale = Math.min(widthBoundScale, maxSafeScale);
-    } else {
-      // Width is the tighter (or exactly matching) axis — no width gap to close.
-      scale = widthBoundScale;
-    }
-    phoneEl.style.transform = `scale(${scale})`;
+    if (!mobileMq.matches) { canvasEl.style.transform = ''; return; }
+    const rect = phoneFrame.getBoundingClientRect();
+    const scale = Math.max(rect.width / 393, rect.height / 852);
+    canvasEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
   }
   function paintLetterbox() {
+    // .phone-canvas cover-scales to fully fill .phone-frame, so there's normally no gap at all
+    // to blend — this is now just a defensive fallback for a sub-pixel rounding sliver.
     if (!mobileMq.matches) return;
     const activeScreen = document.querySelector('.tour-screen.is-active');
     if (activeScreen) document.body.style.background = activeScreen.style.background;
