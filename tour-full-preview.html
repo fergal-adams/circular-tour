@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Full tour preview — toy library → listicle → did you know → articles → survey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,7 +112,15 @@
     /* background is set dynamically by paintLetterbox() in JS, matched to the active screen's
        own bg colour, so any letterbox gap around the scaled .phone blends in instead of showing
        as a stray black bar. #000 here is just the pre-JS fallback for the first paint. */
-    body { padding: 0; gap: 0; height: 100dvh; overflow: hidden; background: #000; }
+    /* padding-bottom reserves space for iOS Safari's floating bottom toolbar. Since iOS 15
+       Safari's compact toolbar is a translucent OVERLAY drawn on top of page content, not
+       something 100dvh excludes — real-device testing showed the Next button rendering
+       correctly per the dvh math, then getting visually covered/ghosted by that bar anyway.
+       env(safe-area-inset-bottom) is Apple's documented way to reserve exactly the space that
+       bar covers (it dynamically grows when the bar is showing); requires viewport-fit=cover
+       on the meta viewport tag to report a non-zero value at all. fitPhone()'s viewportSize()
+       subtracts the same value so .phone is scaled to fit inside the remaining safe space. */
+    body { padding: 0; padding-bottom: env(safe-area-inset-bottom, 0px); gap: 0; height: 100dvh; overflow: hidden; background: #000; }
     .frame-label { display: none; }
     .phone {
       /* max-width:100% from the base rule (desktop shrink-to-fit) was still active here,
@@ -288,6 +296,8 @@
 </style>
 </head>
 <body>
+
+<div id="safe-bottom-probe" aria-hidden="true" style="position:fixed; bottom:0; left:0; width:0; height:0; padding-bottom:env(safe-area-inset-bottom, 0px); visibility:hidden; pointer-events:none;"></div>
 
 <p class="frame-label">Full tour preview — toy library → listicle (title + 3 cards) → did you know → article stack → survey. Slide between templates, colour-reveal within the listicle. On the article stack, Next/Back drive the local stack until it's empty, then fall through. Use Next/Back, or ← → arrow keys.</p>
 
@@ -597,9 +607,15 @@
   // address bar/toolbar chrome — window.innerHeight can lag briefly behind that on load.
   const phoneEl = document.querySelector('.phone');
   const mobileMq = matchMedia('(max-width: 480px)');
+  const safeBottomProbe = document.getElementById('safe-bottom-probe');
+  function getSafeBottom() {
+    return parseFloat(getComputedStyle(safeBottomProbe).paddingBottom) || 0;
+  }
   function viewportSize() {
     const vv = window.visualViewport;
-    return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight };
+    const w = vv ? vv.width : window.innerWidth;
+    const h = (vv ? vv.height : window.innerHeight) - getSafeBottom();
+    return { w, h };
   }
   function fitPhone() {
     if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
