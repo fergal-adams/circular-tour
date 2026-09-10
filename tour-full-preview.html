@@ -596,18 +596,27 @@
   // resizing left every fixed-px child (nav, cards, text) misaligned against whatever odd ratio
   // the device/browser-chrome combo produced. Scaling keeps every child's relative position
   // exactly as designed, just painted smaller.
-  // Uniform scale only (Math.min, not independent scaleX/scaleY) — an earlier version stretched
-  // each axis to fill the screen exactly, which removed the black letterbox bars but visibly
+  // Uniform scale only (one scale factor, not independent scaleX/scaleY) — an earlier version
+  // stretched each axis to fill the screen exactly, which removed the letterbox bars but visibly
   // distorted the design's circles into ellipses on a real device (confirmed via screenshot —
-  // the distortion was NOT the "barely perceptible" effect it was assumed to be). Uniform scale
-  // preserves every shape exactly and accepts a letterbox gap instead; that gap is then painted
-  // to match the active screen's own background (see paintLetterbox below) so it blends in
-  // rather than reading as a stray black bar.
+  // the distortion was NOT the "barely perceptible" effect it was assumed to be).
+  // Plain "contain" (Math.min) left a visible side gap on a real device where the safe-area
+  // reservation above makes height the binding axis — illustrations meant to bleed off the
+  // canvas edge were stopping short of the real screen edge instead. Straight "cover" (Math.max)
+  // isn't safe here though: the actual gap runs ~10-15% of the canvas, but the shared chrome has
+  // nowhere near that much margin to give up — .tour-progress sits just 16px from the canvas top
+  // and .tour-nav only 40px from the bottom (see their rules below); covering fully would crop
+  // into one of them, reintroducing a worse version of the bug the safe-area fix above just
+  // solved. Fergal's call: crop a little, capped at the true safe margin — scale up toward
+  // covering the viewport, but never past the point where the resulting top/bottom crop (split
+  // evenly by the centering below) would exceed SAFE_TOP_MARGIN. SAFE_TOP_MARGIN (not the
+  // larger bottom one) is the binding constraint since it's the smaller of the two.
   // window.visualViewport, when available, tracks Safari's actual visible area after its
   // address bar/toolbar chrome — window.innerHeight can lag briefly behind that on load.
   const phoneEl = document.querySelector('.phone');
   const mobileMq = matchMedia('(max-width: 480px)');
   const safeBottomProbe = document.getElementById('safe-bottom-probe');
+  const SAFE_TOP_MARGIN = 16; // .tour-progress's `top` — the tighter of the two chrome margins
   function getSafeBottom() {
     return parseFloat(getComputedStyle(safeBottomProbe).paddingBottom) || 0;
   }
@@ -620,7 +629,20 @@
   function fitPhone() {
     if (!mobileMq.matches) { phoneEl.style.transform = ''; return; }
     const { w, h } = viewportSize();
-    const scale = Math.min(w / 393, h / 852);
+    const heightBoundScale = h / 852; // scale so the canvas height exactly fills available height
+    const widthBoundScale = w / 393;  // scale so the canvas width exactly fills available width
+    let scale;
+    if (widthBoundScale > heightBoundScale) {
+      // Height is the tighter axis — heightBoundScale alone leaves a width gap. Scale up toward
+      // covering the width, capped so the resulting top/bottom crop (split evenly by the
+      // centering below) never exceeds SAFE_TOP_MARGIN:
+      //   (852*scale - h)/2 <= SAFE_TOP_MARGIN*scale  =>  scale <= h / (852 - 2*SAFE_TOP_MARGIN)
+      const maxSafeScale = h / (852 - 2 * SAFE_TOP_MARGIN);
+      scale = Math.min(widthBoundScale, maxSafeScale);
+    } else {
+      // Width is the tighter (or exactly matching) axis — no width gap to close.
+      scale = widthBoundScale;
+    }
     phoneEl.style.transform = `scale(${scale})`;
   }
   function paintLetterbox() {
