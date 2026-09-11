@@ -16,8 +16,10 @@
     built Homeowners before Retirees despite the stage order implied by the "3 life stages"
     list further down this codebase's memory — sequence in the actual tour just follows build
     order, don't assume Retirees slots in before Homeowners).
-      0: "Circular wins for young families" (originally "What's a toy library?", from
-         page-toylibrary.html — retitled 2026-09-10, Fergal's copy).
+      0: "Circular wins for parents" (originally "What's a toy library?", from
+         page-toylibrary.html — retitled 2026-09-10, Fergal's copy; retitled again 2026-09-11
+         from "Circular wins for young families" to match the other two stages' "Circular wins
+         for X" pattern).
       1: "Clonmel Toy Library" — reuses the listicle instance-card template from
          tour-listicle-preview.html, simplified: the peeking side circles were dropped
          (Fergal's call) since there's only one card now, nothing to peek at.
@@ -259,8 +261,8 @@
   <p id="tour-status" class="sr-only" aria-live="polite"></p>
 
   <!-- 0: toy library -->
-  <section class="tour-screen is-active" data-screen="0" tabindex="-1" aria-label="Circular wins for young families" style="background:#54D3BE">
-    <h1 class="tl-headline">Circular wins for young families</h1>
+  <section class="tour-screen is-active" data-screen="0" tabindex="-1" aria-label="Circular wins for parents" style="background:#54D3BE">
+    <h1 class="tl-headline">Circular wins for parents</h1>
     <div class="tl-illustration-zone tl-illustration-zone--a" aria-hidden="true">
       <svg width="202" height="288" viewBox="0 0 202 288" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
         <g clip-path="url(#fp_925a)">
@@ -482,7 +484,7 @@
   const segs = Array.from(document.querySelectorAll('.tour-progress__seg'));
   const status = document.getElementById('tour-status');
   const titles = [
-    'Circular wins for young families', 'Clonmel Toy Library', 'More life stages coming soon',
+    'Circular wins for parents', 'Clonmel Toy Library', 'More life stages coming soon',
     'Circular wins for your home', 'Shop pre-loved first', 'More life stages coming soon',
     'Circular wins for downsizing', 'Turn possessions into proper value', 'More life stages coming soon'
   ];
